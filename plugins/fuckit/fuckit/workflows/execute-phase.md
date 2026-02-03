@@ -14,18 +14,26 @@ Validate state consistency before proceeding.
 
 <references>
 @~/.claude/plugins/marketplaces/fuckit/fuckit/references/state-validation.md
+@~/.claude/plugins/marketplaces/fuckit/fuckit/references/config-parsing.md
 </references>
 
 <process>
 
 <step name="resolve_model_profile" priority="first">
-Read model profile for agent spawning:
+Read model profile for agent spawning using reliable JSON parsing:
 
 ```bash
-MODEL_PROFILE=$(cat .planning/config.json 2>/dev/null | grep -o '"model_profile"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || echo "balanced")
+# Use Node.js for reliable JSON parsing (see config-parsing.md)
+MODEL_PROFILE=$(node -e "
+  const fs = require('fs');
+  try {
+    const c = JSON.parse(fs.readFileSync('.planning/config.json'));
+    console.log(c.model_profile || 'balanced');
+  } catch { console.log('balanced'); }
+" 2>/dev/null)
 ```
 
-Default to "balanced" if not set.
+Default to "balanced" if not set or config missing.
 
 **Model lookup table (project-wide defaults):**
 
@@ -78,36 +86,38 @@ Options:
 
 **If .planning/ doesn't exist:** Error - project not initialized.
 
-**Load planning config:**
+**Load all config values using reliable JSON parsing:**
 
 ```bash
-# Check if planning docs should be committed (default: true)
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+# Load multiple config values in one Node.js call (efficient)
+eval $(node -e "
+  const fs = require('fs');
+  try {
+    const c = JSON.parse(fs.readFileSync('.planning/config.json'));
+    console.log('COMMIT_PLANNING_DOCS=' + (c.planning?.commit_docs !== false));
+    console.log('PARALLELIZATION=' + (c.parallelization?.enabled !== false));
+    console.log('BRANCHING_STRATEGY=' + (c.git?.branching_strategy || 'none'));
+    console.log('PHASE_BRANCH_TEMPLATE=\"' + (c.git?.phase_branch_template || 'gsd/phase-{phase}-{slug}') + '\"');
+    console.log('MILESTONE_BRANCH_TEMPLATE=\"' + (c.git?.milestone_branch_template || 'gsd/{milestone}-{slug}') + '\"');
+  } catch {
+    console.log('COMMIT_PLANNING_DOCS=true');
+    console.log('PARALLELIZATION=true');
+    console.log('BRANCHING_STRATEGY=none');
+    console.log('PHASE_BRANCH_TEMPLATE=\"gsd/phase-{phase}-{slug}\"');
+    console.log('MILESTONE_BRANCH_TEMPLATE=\"gsd/{milestone}-{slug}\"');
+  }
+" 2>/dev/null)
+
 # Auto-detect gitignored (overrides config)
 git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
 ```
 
-Store `COMMIT_PLANNING_DOCS` for use in git operations.
-
-**Load parallelization config:**
-
-```bash
-# Check if parallelization is enabled (default: true)
-PARALLELIZATION=$(cat .planning/config.json 2>/dev/null | grep -o '"parallelization"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
-```
-
-Store `PARALLELIZATION` for use in wave execution step. When `false`, plans within a wave execute sequentially instead of in parallel.
-
-**Load git branching config:**
-
-```bash
-# Get branching strategy (default: none)
-BRANCHING_STRATEGY=$(cat .planning/config.json 2>/dev/null | grep -o '"branching_strategy"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' || echo "none")
-
-# Get templates
-PHASE_BRANCH_TEMPLATE=$(cat .planning/config.json 2>/dev/null | grep -o '"phase_branch_template"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' || echo "gsd/phase-{phase}-{slug}")
-MILESTONE_BRANCH_TEMPLATE=$(cat .planning/config.json 2>/dev/null | grep -o '"milestone_branch_template"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' || echo "gsd/{milestone}-{slug}")
-```
+Store values for use in subsequent steps:
+- `COMMIT_PLANNING_DOCS`: Whether to commit .planning/ files
+- `PARALLELIZATION`: Whether to run plans in parallel within waves
+- `BRANCHING_STRATEGY`: Branch strategy (none, phase, milestone)
+- `PHASE_BRANCH_TEMPLATE`: Template for phase branches
+- `MILESTONE_BRANCH_TEMPLATE`: Template for milestone branches
 
 Store `BRANCHING_STRATEGY` and templates for use in branch creation step.
 </step>
