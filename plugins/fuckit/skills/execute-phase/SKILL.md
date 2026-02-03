@@ -35,6 +35,7 @@ Phase: $ARGUMENTS
 - `--dry-run` — Preview what would be executed without running anything. Shows plans, tasks, waves, and estimated commits.
 - `--skip-tests` — Skip automated test execution during verification.
 - `--skip-tripped` — Skip plans that have hit the circuit breaker (3+ failures).
+- `--verbose` — Show detailed execution info including context estimates, timing, and agent outputs.
 
 @.planning/ROADMAP.md
 @.planning/STATE.md
@@ -83,7 +84,7 @@ For each PLAN.md, extract:
 | 03-01 | Auth Setup | 3 | 5 | None |
 | 03-02 | JWT Service | 2 | 3 | None |
 
-**Estimated time:** ~{X} context windows
+**Estimated context:** ~{X}% per agent (based on task count × ~10%)
 
 ### Wave 2 (Depends on Wave 1)
 
@@ -121,6 +122,46 @@ Ready to execute?
 
 **No agents spawned, no code modified, no commits made.**
 </dry_run_mode>
+
+<verbose_mode>
+When `--verbose` flag is present, output additional information:
+
+**Before spawning agents:**
+```
+## Spawning Wave {N} Agents
+
+**Model profile:** {profile}
+**Parallelization:** {enabled/disabled}
+
+| Plan | Model | Est. Context | Files |
+|------|-------|--------------|-------|
+| 03-01 | sonnet | ~40% | 5 |
+| 03-02 | opus (override) | ~35% | 3 |
+
+Spawning {N} agents...
+```
+
+**After each agent completes:**
+```
+## Agent Complete: {plan_id}
+
+**Duration:** {X}s
+**Tasks:** {N}/{M}
+**Commits:** {count}
+**Context used:** ~{X}% (estimated from response size)
+
+**Output preview:**
+{first 500 chars of agent output}
+```
+
+**Context estimation formula:**
+- Base: 15% for plan loading and state
+- Per task: ~8-12% depending on complexity
+- Verification: ~5%
+- Total estimate = base + (tasks × avg_per_task)
+
+This helps users understand resource usage and identify heavy plans.
+</verbose_mode>
 
 <process>
 0. **Resolve Model Profile**
