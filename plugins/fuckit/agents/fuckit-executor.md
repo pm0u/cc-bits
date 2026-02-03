@@ -746,6 +746,60 @@ SUMMARY: .planning/phases/XX-name/{phase}-{plan}-SUMMARY.md
 This is separate from per-task commits. It captures execution results only.
 </final_commit>
 
+<update_metrics>
+**Update metrics if enabled:**
+
+```bash
+# Check if metrics enabled
+METRICS_ENABLED=$(cat .planning/config.json 2>/dev/null | grep -o '"metrics"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+```
+
+**If `METRICS_ENABLED=true` and `.planning/metrics.json` exists:**
+
+```bash
+# Calculate duration
+PLAN_END_EPOCH=$(date +%s)
+DURATION_MS=$(( (PLAN_END_EPOCH - PLAN_START_EPOCH) * 1000 ))
+
+# Update metrics.json using node (JSON-safe)
+node -e "
+const fs = require('fs');
+const m = JSON.parse(fs.readFileSync('.planning/metrics.json'));
+
+// Execution stats
+m.execution.plans_completed++;
+m.execution.tasks_completed += $TASK_COUNT;
+m.execution.total_commits += $COMMIT_COUNT;
+m.execution.total_duration_ms += $DURATION_MS;
+
+// By phase
+const phaseKey = '$PHASE_DIR_NAME';
+m.by_phase[phaseKey] = m.by_phase[phaseKey] || { plans: 0, tasks: 0, duration_ms: 0 };
+m.by_phase[phaseKey].plans++;
+m.by_phase[phaseKey].tasks += $TASK_COUNT;
+m.by_phase[phaseKey].duration_ms += $DURATION_MS;
+
+// Recent activity
+m.recent_activity.unshift({
+  timestamp: new Date().toISOString(),
+  type: 'plan_complete',
+  phase: '$PHASE_NUM',
+  plan: '$PLAN_NUM',
+  duration_ms: $DURATION_MS,
+  tasks: $TASK_COUNT
+});
+m.recent_activity = m.recent_activity.slice(0, 20);
+
+m.updated = new Date().toISOString();
+fs.writeFileSync('.planning/metrics.json', JSON.stringify(m, null, 2));
+"
+```
+
+**If metrics disabled or file missing:** Skip silently.
+
+Metrics are not committed with the plan — they're local tracking only.
+</update_metrics>
+
 <completion_format>
 When plan completes successfully, return:
 
