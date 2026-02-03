@@ -9,7 +9,12 @@ The orchestrator's job is coordination, not execution. Each subagent loads the f
 <required_reading>
 Read STATE.md before any operation to load project context.
 Read config.json for planning behavior settings.
+Validate state consistency before proceeding.
 </required_reading>
+
+<references>
+@~/.claude/plugins/marketplaces/fuckit/fuckit/references/state-validation.md
+</references>
 
 <process>
 
@@ -87,6 +92,52 @@ MILESTONE_BRANCH_TEMPLATE=$(cat .planning/config.json 2>/dev/null | grep -o '"mi
 ```
 
 Store `BRANCHING_STRATEGY` and templates for use in branch creation step.
+</step>
+
+<step name="validate_state">
+**Quick state validation before proceeding:**
+
+```bash
+# Check position matches reality
+CLAIMED_PLAN=$(grep -E "^Plan:" .planning/STATE.md 2>/dev/null | grep -oE "[0-9]+" | head -1 || echo "1")
+PHASE_DIR=$(ls -d .planning/phases/${PHASE_ARG}-* .planning/phases/0${PHASE_ARG}-* 2>/dev/null | head -1)
+ACTUAL_SUMMARIES=$(ls -1 "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+
+# Check for uncommitted changes
+UNCOMMITTED=$(git status --porcelain -- .planning/ 2>/dev/null | wc -l | tr -d ' ')
+```
+
+**Position drift check:**
+If `CLAIMED_PLAN > ACTUAL_SUMMARIES + 1`:
+```
+⚠ State Inconsistency Detected
+
+STATE.md claims Plan {CLAIMED_PLAN} but only {ACTUAL_SUMMARIES} plans are complete.
+
+Run /fuckit:repair-state to fix, or continue anyway?
+```
+
+Use AskUserQuestion:
+- "Repair first" - Exit and suggest repair command
+- "Continue anyway" - Proceed with actual state (may miss context)
+
+**Uncommitted changes check:**
+If `UNCOMMITTED > 0`:
+```
+⚠ Uncommitted Changes Detected
+
+Found {UNCOMMITTED} uncommitted changes in .planning/.
+This may indicate interrupted previous execution.
+
+Options:
+```
+
+Use AskUserQuestion:
+- "Commit and continue" - Commit changes as recovery, then proceed
+- "Discard and continue" - Reset changes, proceed fresh
+- "Abort" - Exit to investigate manually
+
+**If validation passes:** Continue silently to next step.
 </step>
 
 <step name="handle_branching">
