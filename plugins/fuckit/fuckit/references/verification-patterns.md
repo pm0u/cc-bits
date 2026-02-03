@@ -594,6 +594,196 @@ Some things can't be verified programmatically. Flag these for human testing:
 
 </human_verification_triggers>
 
+<test_execution>
+
+## Level 4: Automated Test Execution
+
+When must_haves includes a `tests` section, the verifier can run actual tests to verify functionality.
+
+### Test Configuration Format
+
+In PLAN.md frontmatter:
+
+```yaml
+must_haves:
+  truths:
+    - "User can log in with valid credentials"
+  artifacts:
+    - path: "src/auth/login.ts"
+      provides: "Login handler"
+  tests:
+    - name: "Login flow"
+      command: "npm test -- --grep 'login'"
+      expect_exit: 0
+      timeout: 30000
+    - name: "API health"
+      command: "curl -s localhost:3000/api/health"
+      expect_contains: "ok"
+    - name: "E2E login"
+      command: "npx playwright test login.spec.ts"
+      expect_exit: 0
+      requires_server: true
+```
+
+### Test Types
+
+**Unit/Integration tests (expect_exit):**
+```yaml
+- name: "Auth tests pass"
+  command: "npm test -- auth"
+  expect_exit: 0
+  timeout: 60000  # ms, default 30000
+```
+
+**Output verification (expect_contains):**
+```yaml
+- name: "Server responds"
+  command: "curl -s http://localhost:3000/health"
+  expect_contains: "healthy"
+```
+
+**Output pattern (expect_pattern):**
+```yaml
+- name: "Version format"
+  command: "node -e \"console.log(require('./package.json').version)\""
+  expect_pattern: "^\\d+\\.\\d+\\.\\d+$"
+```
+
+**Multiple conditions:**
+```yaml
+- name: "Build succeeds with output"
+  command: "npm run build"
+  expect_exit: 0
+  expect_contains: "Build complete"
+  expect_not_contains: "warning"
+```
+
+### Server-Dependent Tests
+
+For tests requiring a running server:
+
+```yaml
+- name: "E2E tests"
+  command: "npx playwright test"
+  expect_exit: 0
+  requires_server: true
+  server_command: "npm run dev"
+  server_ready_pattern: "ready on"
+  server_timeout: 10000
+```
+
+The verifier will:
+1. Start server with `server_command`
+2. Wait for `server_ready_pattern` in output
+3. Run the test command
+4. Kill the server after test completes
+
+### Execution Flow
+
+```bash
+run_test() {
+  local name="$1"
+  local command="$2"
+  local expect_exit="$3"
+  local expect_contains="$4"
+  local timeout="${5:-30000}"
+
+  echo "Running: $name"
+
+  # Execute with timeout
+  OUTPUT=$(timeout $((timeout/1000)) bash -c "$command" 2>&1)
+  EXIT_CODE=$?
+
+  # Check exit code
+  if [ -n "$expect_exit" ] && [ "$EXIT_CODE" -ne "$expect_exit" ]; then
+    echo "FAIL: Expected exit $expect_exit, got $EXIT_CODE"
+    return 1
+  fi
+
+  # Check output contains
+  if [ -n "$expect_contains" ]; then
+    if ! echo "$OUTPUT" | grep -q "$expect_contains"; then
+      echo "FAIL: Output missing '$expect_contains'"
+      return 1
+    fi
+  fi
+
+  echo "PASS: $name"
+  return 0
+}
+```
+
+### Test Results in VERIFICATION.md
+
+```markdown
+## Test Execution Results
+
+| Test | Command | Expected | Actual | Status |
+|------|---------|----------|--------|--------|
+| Login flow | npm test -- login | exit 0 | exit 0 | ✓ PASS |
+| API health | curl /api/health | contains "ok" | "ok" | ✓ PASS |
+| E2E login | playwright test | exit 0 | exit 1 | ✗ FAIL |
+
+**Failed test output:**
+```
+Error: Login button not found
+  at login.spec.ts:23
+```
+```
+
+### When to Run Tests
+
+Tests are optional. The verifier decides based on:
+
+1. **tests section exists** in must_haves → Run tests
+2. **No tests section** → Skip (Levels 1-3 only)
+3. **Tests fail** → Mark as `gaps_found` with test failures in gaps
+
+### Skipping Tests
+
+To skip test execution (faster verification):
+
+```bash
+/fuckit:execute-phase 3 --skip-tests
+```
+
+Or in config.json:
+```json
+{
+  "verification": {
+    "run_tests": false
+  }
+}
+```
+
+### Auto-Detection
+
+If no explicit tests configured, verifier can auto-detect:
+
+```bash
+# Check for test script in package.json
+if [ -f package.json ] && grep -q '"test"' package.json; then
+  echo "Found npm test script"
+  # Offer to run: npm test
+fi
+
+# Check for test files
+TEST_FILES=$(find . -name "*.test.*" -o -name "*.spec.*" | head -5)
+if [ -n "$TEST_FILES" ]; then
+  echo "Found test files: $TEST_FILES"
+fi
+```
+
+When auto-detected, ask user:
+```
+Found test infrastructure. Run tests as part of verification?
+- Yes, run all tests
+- Yes, run relevant tests only (filter by phase files)
+- No, skip tests
+```
+
+</test_execution>
+
 <checkpoint_automation_reference>
 
 ## Pre-Checkpoint Automation
