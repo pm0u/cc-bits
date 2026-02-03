@@ -58,6 +58,55 @@ Per-project default: Set in `.planning/config.json`:
 }
 ```
 
+## Per-Plan Model Override
+
+Individual plans can override the project-wide profile for specific execution needs.
+
+### In PLAN.md Frontmatter
+
+```yaml
+---
+phase: 03
+plan: 02
+wave: 1
+model: opus  # Override for this plan only
+---
+```
+
+### When to Use
+
+- **Complex architectural decisions** in a single plan → `model: opus`
+- **Simple, repetitive tasks** → `model: haiku` (faster, cheaper)
+- **Critical security implementation** → `model: opus`
+- **Bulk file generation** → `model: sonnet` or `haiku`
+
+### Resolution Priority
+
+1. **Plan frontmatter `model:`** — Highest priority, overrides all
+2. **Project `model_profile`** — From config.json, applies to all plans
+3. **Default: `balanced`** — If nothing specified
+
+### Orchestrator Logic
+
+```bash
+# In execute-phase, for each plan:
+PLAN_MODEL=$(grep "^model:" "$PLAN_FILE" | cut -d: -f2 | tr -d ' "')
+
+if [ -n "$PLAN_MODEL" ]; then
+  # Use plan-specific model
+  EXECUTOR_MODEL="$PLAN_MODEL"
+else
+  # Fall back to profile lookup
+  EXECUTOR_MODEL=$(lookup_profile_model "fuckit-executor" "$MODEL_PROFILE")
+fi
+```
+
+### Validation
+
+Valid values: `opus`, `sonnet`, `haiku`
+
+Invalid model names are ignored (falls back to profile).
+
 ## Design Rationale
 
 **Why Opus for fuckit-planner?**

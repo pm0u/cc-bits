@@ -27,7 +27,7 @@ MODEL_PROFILE=$(cat .planning/config.json 2>/dev/null | grep -o '"model_profile"
 
 Default to "balanced" if not set.
 
-**Model lookup table:**
+**Model lookup table (project-wide defaults):**
 
 | Agent | quality | balanced | budget |
 |-------|---------|----------|--------|
@@ -35,7 +35,25 @@ Default to "balanced" if not set.
 | fuckit-verifier | sonnet | sonnet | haiku |
 | general-purpose | — | — | — |
 
-Store resolved models for use in Task calls below.
+**Per-plan override:**
+
+When spawning executors, check each plan for model override:
+
+```bash
+# For each plan, check for per-plan model override
+PLAN_MODEL=$(grep "^model:" "$PLAN_FILE" | cut -d: -f2 | tr -d ' "')
+
+if [ -n "$PLAN_MODEL" ] && echo "$PLAN_MODEL" | grep -qE "^(opus|sonnet|haiku)$"; then
+  # Valid per-plan override
+  EXECUTOR_MODEL="$PLAN_MODEL"
+  echo "Plan $PLAN_ID uses model override: $PLAN_MODEL"
+else
+  # Fall back to profile
+  EXECUTOR_MODEL=$(lookup_from_table "fuckit-executor" "$MODEL_PROFILE")
+fi
+```
+
+Store resolved model per-plan for use in Task calls.
 </step>
 
 <step name="load_project_state">
