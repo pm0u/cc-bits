@@ -1,5 +1,5 @@
 ---
-name: check-todos
+name: fuckit:check-todos
 description: List pending todos and select one to work on
 argument-hint: [area filter]
 allowed-tools:

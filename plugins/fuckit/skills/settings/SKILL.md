@@ -1,5 +1,5 @@
 ---
-name: settings
+name: fuckit:settings
 description: Configure FUCKIT workflow toggles and model profile
 allowed-tools:
   - Read

@@ -1,5 +1,5 @@
 ---
-name: resume-work
+name: fuckit:resume-work
 description: Resume work from previous session with full context restoration
 allowed-tools:
   - Read

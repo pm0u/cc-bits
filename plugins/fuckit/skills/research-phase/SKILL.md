@@ -1,5 +1,5 @@
 ---
-name: research-phase
+name: fuckit:research-phase
 description: Research how to implement a phase (standalone - usually use /fuckit:plan-phase instead)
 argument-hint: "[phase]"
 allowed-tools:

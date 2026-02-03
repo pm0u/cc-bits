@@ -1,5 +1,5 @@
 ---
-name: update
+name: fuckit:update
 description: Update FUCKIT to latest version with changelog display
 ---
 

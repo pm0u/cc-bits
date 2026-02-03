@@ -1,5 +1,5 @@
 ---
-name: quick
+name: fuckit:quick
 description: Execute a quick task with FUCKIT guarantees (atomic commits, state tracking) but skip optional agents
 argument-hint: ""
 allowed-tools:

@@ -1,6 +1,6 @@
 ---
 type: prompt
-name: complete-milestone
+name: fuckit:complete-milestone
 description: Archive completed milestone and prepare for next version
 argument-hint: <version>
 allowed-tools:

@@ -1,5 +1,5 @@
 ---
-name: add-todo
+name: fuckit:add-todo
 description: Capture idea or task as todo from current conversation context
 argument-hint: [optional description]
 allowed-tools:

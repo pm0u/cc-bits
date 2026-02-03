@@ -1,5 +1,5 @@
 ---
-name: join-discord
+name: fuckit:join-discord
 description: Join the FUCKIT Discord community
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: set-profile
+name: fuckit:set-profile
 description: Switch model profile for FUCKIT agents (quality/balanced/budget)
 arguments:
   - name: profile

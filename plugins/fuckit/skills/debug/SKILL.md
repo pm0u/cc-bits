@@ -1,5 +1,5 @@
 ---
-name: debug
+name: fuckit:debug
 description: Systematic debugging with persistent state across context resets
 argument-hint: [issue description]
 allowed-tools:

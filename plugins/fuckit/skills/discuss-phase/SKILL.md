@@ -1,5 +1,5 @@
 ---
-name: discuss-phase
+name: fuckit:discuss-phase
 description: Gather phase context through adaptive questioning before planning
 argument-hint: "<phase>"
 allowed-tools:

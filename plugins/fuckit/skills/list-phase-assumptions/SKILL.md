@@ -1,5 +1,5 @@
 ---
-name: list-phase-assumptions
+name: fuckit:list-phase-assumptions
 description: Surface Claude's assumptions about a phase approach before planning
 argument-hint: "[phase]"
 allowed-tools:

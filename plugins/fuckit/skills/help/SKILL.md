@@ -1,5 +1,5 @@
 ---
-name: help
+name: fuckit:help
 description: Show available FUCKIT commands and usage guide
 ---
 
