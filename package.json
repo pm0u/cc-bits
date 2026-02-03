@@ -1,0 +1,15 @@
+{
+  "name": "fuckit",
+  "version": "1.0.0",
+  "description": "A meta-prompting, context engineering and spec-driven development system for Claude Code.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "ai",
+    "meta-prompting",
+    "context-engineering",
+    "spec-driven-development"
+  ],
+  "author": "",
+  "license": "MIT"
+}
