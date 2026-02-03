@@ -138,6 +138,28 @@ Use AskUserQuestion:
 - "Abort" - Exit to investigate manually
 
 **If validation passes:** Continue silently to next step.
+
+**Check circuit breaker status:**
+
+```bash
+# Check for plans that have hit circuit breaker (3+ failures)
+TRIPPED_PLANS=$(grep -A10 "### Recent Failures" .planning/STATE.md | grep -E "^\| [0-9]" | awk '$3 >= 3 {print $1}')
+```
+
+If any plans in current phase have tripped the circuit breaker:
+```
+⚠ Circuit Breaker Active
+
+The following plans have failed 3+ times and are paused:
+{list of tripped plans with last errors}
+
+Options:
+- Reset failures: /fuckit:repair-state (clears failure counts)
+- Skip these plans: Continue with --skip-tripped flag
+- Investigate: Review errors before proceeding
+```
+
+Use AskUserQuestion to determine how to proceed.
 </step>
 
 <step name="handle_branching">
@@ -410,13 +432,56 @@ Execute each wave in sequence. Autonomous plans within a wave run in parallel **
    - Bad: "Wave 2 complete. Proceeding to Wave 3."
    - Good: "Terrain system complete — 3 biome types, height-based texturing, physics collision meshes. Vehicle physics (Wave 3) can now reference ground surfaces."
 
-4. **Handle failures:**
+4. **Handle failures with circuit breaker:**
 
    If any agent in wave fails:
+
+   **Record failure in STATE.md:**
+   ```bash
+   # Check current failure count for this plan
+   FAIL_COUNT=$(grep -A5 "### Recent Failures" .planning/STATE.md | grep "$PLAN_ID" | awk '{print $3}' || echo "0")
+   NEW_COUNT=$((FAIL_COUNT + 1))
+
+   # Extract error message (first line of failure output)
+   ERROR_MSG=$(echo "$AGENT_OUTPUT" | grep -i "error\|failed\|exception" | head -1 | cut -c1-50)
+
+   # Update or add failure entry
+   TODAY=$(date +%Y-%m-%d)
+   ```
+
+   Update STATE.md Recent Failures table with plan ID, count, error, and date.
+
+   **Circuit breaker check (3 strikes):**
+
+   If `NEW_COUNT >= 3`:
+   ```
+   ⚠ Circuit Breaker Triggered
+
+   Plan {PLAN_ID} has failed {NEW_COUNT} consecutive times.
+
+   Recent errors:
+   - {error 1}
+   - {error 2}
+   - {error 3}
+
+   Automatic retry disabled. Options:
+   ```
+
+   Use AskUserQuestion:
+   - "Investigate" - Show detailed failure info, pause execution
+   - "Skip this plan" - Mark as skipped, continue with remaining
+   - "Reset and retry" - Clear failure count, try one more time
+   - "Abort phase" - Stop execution entirely
+
+   **If `NEW_COUNT < 3`:**
    - Report which plan failed and why
-   - Ask user: "Continue with remaining waves?" or "Stop execution?"
+   - Ask user: "Retry this plan?", "Continue with remaining waves?", or "Stop execution?"
+   - If retry: spawn fresh agent for same plan
    - If continue: proceed to next wave (dependent plans may also fail)
    - If stop: exit with partial completion report
+
+   **Clear failures on success:**
+   When a plan succeeds, remove its entry from Recent Failures table.
 
 5. **Execute checkpoint plans between waves:**
 
