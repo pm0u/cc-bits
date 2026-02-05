@@ -1,5 +1,5 @@
 ---
-name: fuckit-project-researcher
+name: project-researcher
 description: Researches domain ecosystem before roadmap creation. Produces files in .planning/research/ consumed during roadmap creation. Spawned by /fuckit:new-project or /fuckit:new-milestone orchestrators.
 tools: Read, Write, Bash, Grep, Glob, WebSearch, WebFetch, mcp__context7__*
 color: cyan

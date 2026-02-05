@@ -47,8 +47,8 @@ Phase: $ARGUMENTS (optional)
 7. On completion: commit, present summary
 8. If issues found:
    - Spawn parallel debug agents to diagnose root causes
-   - Spawn fuckit-planner in --gaps mode to create fix plans
-   - Spawn fuckit-plan-checker to verify fix plans
+   - Spawn fuckit:planner in --gaps mode to create fix plans
+   - Spawn fuckit:plan-checker to verify fix plans
    - Iterate planner ↔ checker until plans pass (max 3)
    - Present ready status with `/clear` then `/fuckit:execute-phase`
 </process>
@@ -213,7 +213,7 @@ Review the issues above and either:
 - [ ] Batched writes: on issue, every 5 passes, or completion
 - [ ] Committed on completion
 - [ ] If issues: parallel debug agents diagnose root causes
-- [ ] If issues: fuckit-planner creates fix plans from diagnosed gaps
-- [ ] If issues: fuckit-plan-checker verifies fix plans (max 3 iterations)
+- [ ] If issues: fuckit:planner creates fix plans from diagnosed gaps
+- [ ] If issues: fuckit:plan-checker verifies fix plans (max 3 iterations)
 - [ ] Ready for `/fuckit:execute-phase` when complete
 </success_criteria>

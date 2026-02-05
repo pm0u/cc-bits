@@ -136,9 +136,9 @@ Default to "balanced" if not set.
 
 | Agent | quality | balanced | budget |
 |-------|---------|----------|--------|
-| fuckit-project-researcher | opus | sonnet | haiku |
-| fuckit-research-synthesizer | sonnet | sonnet | haiku |
-| fuckit-roadmapper | opus | sonnet | sonnet |
+| fuckit:project-researcher | opus | sonnet | haiku |
+| fuckit:research-synthesizer | sonnet | sonnet | haiku |
+| fuckit:roadmapper | opus | sonnet | sonnet |
 
 Store resolved models for use in Task calls below.
 
@@ -176,7 +176,7 @@ Display spawning indicator:
   → Pitfalls research
 ```
 
-Spawn 4 parallel fuckit-project-researcher agents with milestone-aware context:
+Spawn 4 parallel fuckit:project-researcher agents with milestone-aware context:
 
 ```
 Task(prompt="
@@ -218,7 +218,7 @@ Your STACK.md feeds into roadmap creation. Be prescriptive:
 Write to: .planning/research/STACK.md
 Use template: ~/.claude/plugins/marketplaces/fuckit/fuckit/templates/research-project/STACK.md
 </output>
-", subagent_type="fuckit-project-researcher", model="{researcher_model}", description="Stack research")
+", subagent_type="fuckit:project-researcher", model="{researcher_model}", description="Stack research")
 
 Task(prompt="
 <research_type>
@@ -259,7 +259,7 @@ Your FEATURES.md feeds into requirements definition. Categorize clearly:
 Write to: .planning/research/FEATURES.md
 Use template: ~/.claude/plugins/marketplaces/fuckit/fuckit/templates/research-project/FEATURES.md
 </output>
-", subagent_type="fuckit-project-researcher", model="{researcher_model}", description="Features research")
+", subagent_type="fuckit:project-researcher", model="{researcher_model}", description="Features research")
 
 Task(prompt="
 <research_type>
@@ -301,7 +301,7 @@ Your ARCHITECTURE.md informs phase structure in roadmap. Include:
 Write to: .planning/research/ARCHITECTURE.md
 Use template: ~/.claude/plugins/marketplaces/fuckit/fuckit/templates/research-project/ARCHITECTURE.md
 </output>
-", subagent_type="fuckit-project-researcher", model="{researcher_model}", description="Architecture research")
+", subagent_type="fuckit:project-researcher", model="{researcher_model}", description="Architecture research")
 
 Task(prompt="
 <research_type>
@@ -339,7 +339,7 @@ Your PITFALLS.md prevents mistakes in roadmap/planning. For each pitfall:
 Write to: .planning/research/PITFALLS.md
 Use template: ~/.claude/plugins/marketplaces/fuckit/fuckit/templates/research-project/PITFALLS.md
 </output>
-", subagent_type="fuckit-project-researcher", model="{researcher_model}", description="Pitfalls research")
+", subagent_type="fuckit:project-researcher", model="{researcher_model}", description="Pitfalls research")
 ```
 
 After all 4 agents complete, spawn synthesizer to create SUMMARY.md:
@@ -363,7 +363,7 @@ Write to: .planning/research/SUMMARY.md
 Use template: ~/.claude/plugins/marketplaces/fuckit/fuckit/templates/research-project/SUMMARY.md
 Commit after writing.
 </output>
-", subagent_type="fuckit-research-synthesizer", model="{synthesizer_model}", description="Synthesize research")
+", subagent_type="fuckit:research-synthesizer", model="{synthesizer_model}", description="Synthesize research")
 ```
 
 Display research complete banner and key findings:
@@ -533,7 +533,7 @@ Display stage banner:
 Read MILESTONES.md to find the last phase number from previous milestone.
 New phases continue from there (e.g., if v1.0 ended at phase 5, v1.1 starts at phase 6).
 
-Spawn fuckit-roadmapper agent with context:
+Spawn fuckit:roadmapper agent with context:
 
 ```
 Task(prompt="
@@ -568,7 +568,7 @@ Create roadmap for milestone v[X.Y]:
 
 Write files first, then return. This ensures artifacts persist even if context is lost.
 </instructions>
-", subagent_type="fuckit-roadmapper", model="{roadmapper_model}", description="Create roadmap")
+", subagent_type="fuckit:roadmapper", model="{roadmapper_model}", description="Create roadmap")
 ```
 
 **Handle roadmapper return:**
@@ -635,7 +635,7 @@ Use AskUserQuestion:
   Update the roadmap based on feedback. Edit files in place.
   Return ROADMAP REVISED with changes made.
   </revision>
-  ", subagent_type="fuckit-roadmapper", model="{roadmapper_model}", description="Revise roadmap")
+  ", subagent_type="fuckit:roadmapper", model="{roadmapper_model}", description="Revise roadmap")
   ```
 - Present revised roadmap
 - Loop until user approves
@@ -710,7 +710,7 @@ Present completion with next steps:
 - [ ] Requirements gathered (from research or conversation)
 - [ ] User scoped each category
 - [ ] REQUIREMENTS.md created with REQ-IDs
-- [ ] fuckit-roadmapper spawned with phase numbering context
+- [ ] fuckit:roadmapper spawned with phase numbering context
 - [ ] Roadmap files written immediately (not draft)
 - [ ] User feedback incorporated (if any)
 - [ ] ROADMAP.md created with phases continuing from previous milestone

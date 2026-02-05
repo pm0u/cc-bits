@@ -17,8 +17,8 @@ allowed-tools:
 Execute small, ad-hoc tasks with FUCKIT guarantees (atomic commits, STATE.md tracking) while skipping optional agents (research, plan-checker, verifier).
 
 Quick mode is the same system with a shorter path:
-- Spawns fuckit-planner (quick mode) + fuckit-executor(s)
-- Skips fuckit-phase-researcher, fuckit-plan-checker, fuckit-verifier
+- Spawns fuckit:planner (quick mode) + fuckit:executor(s)
+- Skips fuckit:phase-researcher, fuckit:plan-checker, fuckit:verifier
 - Quick tasks live in `.planning/quick/` separate from planned phases
 - Updates STATE.md "Quick Tasks Completed" table (NOT ROADMAP.md)
 
@@ -48,8 +48,8 @@ Default to "balanced" if not set.
 
 | Agent | quality | balanced | budget |
 |-------|---------|----------|--------|
-| fuckit-planner | opus | opus | sonnet |
-| fuckit-executor | opus | sonnet | sonnet |
+| fuckit:planner | opus | opus | sonnet |
+| fuckit:executor | opus | sonnet | sonnet |
 
 Store resolved models for use in Task calls below.
 
@@ -137,7 +137,7 @@ Store `$QUICK_DIR` for use in orchestration.
 
 **Step 5: Spawn planner (quick mode)**
 
-Spawn fuckit-planner with quick mode context:
+Spawn fuckit:planner with quick mode context:
 
 ```
 Task(
@@ -165,7 +165,7 @@ Write plan to: ${QUICK_DIR}/${next_num}-PLAN.md
 Return: ## PLANNING COMPLETE with plan path
 </output>
 ",
-  subagent_type="fuckit-planner",
+  subagent_type="fuckit:planner",
   model="{planner_model}",
   description="Quick plan: ${DESCRIPTION}"
 )
@@ -182,7 +182,7 @@ If plan not found, error: "Planner failed to create ${next_num}-PLAN.md"
 
 **Step 6: Spawn executor**
 
-Spawn fuckit-executor with plan reference:
+Spawn fuckit:executor with plan reference:
 
 ```
 Task(
@@ -199,7 +199,7 @@ Project state: @.planning/STATE.md
 - Do NOT update ROADMAP.md (quick tasks are separate from planned phases)
 </constraints>
 ",
-  subagent_type="fuckit-executor",
+  subagent_type="fuckit:executor",
   model="{executor_model}",
   description="Execute: ${DESCRIPTION}"
 )

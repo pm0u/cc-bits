@@ -1,5 +1,5 @@
 ---
-name: fuckit-research-synthesizer
+name: research-synthesizer
 description: Synthesizes research outputs from parallel researcher agents into SUMMARY.md. Spawned by /fuckit:new-project after 4 researcher agents complete.
 tools: Read, Write, Bash
 color: purple
@@ -24,7 +24,7 @@ Your job: Create a unified research summary that informs roadmap creation. Extra
 </role>
 
 <downstream_consumer>
-Your SUMMARY.md is consumed by the fuckit-roadmapper agent which uses it to:
+Your SUMMARY.md is consumed by the fuckit:roadmapper agent which uses it to:
 
 | Section | How Roadmapper Uses It |
 |---------|------------------------|

@@ -82,9 +82,9 @@ Next spawned agents will use the new profile.
 Agents will now use:
 | Agent | Model |
 |-------|-------|
-| fuckit-planner | sonnet |
-| fuckit-executor | sonnet |
-| fuckit-verifier | haiku |
+| fuckit:planner | sonnet |
+| fuckit:executor | sonnet |
+| fuckit:verifier | haiku |
 | ... | ... |
 ```
 
@@ -97,9 +97,9 @@ Agents will now use:
 Agents will now use:
 | Agent | Model |
 |-------|-------|
-| fuckit-planner | opus |
-| fuckit-executor | opus |
-| fuckit-verifier | sonnet |
+| fuckit:planner | opus |
+| fuckit:executor | opus |
+| fuckit:verifier | sonnet |
 | ... | ... |
 ```
 

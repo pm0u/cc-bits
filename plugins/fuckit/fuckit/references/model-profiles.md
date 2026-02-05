@@ -6,17 +6,17 @@ Model profiles control which Claude model each FUCKIT agent uses. This allows ba
 
 | Agent | `quality` | `balanced` | `budget` |
 |-------|-----------|------------|----------|
-| fuckit-planner | opus | opus | sonnet |
-| fuckit-roadmapper | opus | sonnet | sonnet |
-| fuckit-executor | opus | sonnet | sonnet |
-| fuckit-phase-researcher | opus | sonnet | haiku |
-| fuckit-project-researcher | opus | sonnet | haiku |
-| fuckit-research-synthesizer | sonnet | sonnet | haiku |
-| fuckit-debugger | opus | sonnet | sonnet |
-| fuckit-codebase-mapper | sonnet | haiku | haiku |
-| fuckit-verifier | sonnet | sonnet | haiku |
-| fuckit-plan-checker | sonnet | sonnet | haiku |
-| fuckit-integration-checker | sonnet | sonnet | haiku |
+| fuckit:planner | opus | opus | sonnet |
+| fuckit:roadmapper | opus | sonnet | sonnet |
+| fuckit:executor | opus | sonnet | sonnet |
+| fuckit:phase-researcher | opus | sonnet | haiku |
+| fuckit:project-researcher | opus | sonnet | haiku |
+| fuckit:research-synthesizer | sonnet | sonnet | haiku |
+| fuckit:debugger | opus | sonnet | sonnet |
+| fuckit:codebase-mapper | sonnet | haiku | haiku |
+| fuckit:verifier | sonnet | sonnet | haiku |
+| fuckit:plan-checker | sonnet | sonnet | haiku |
+| fuckit:integration-checker | sonnet | sonnet | haiku |
 
 ## Profile Philosophy
 
@@ -97,7 +97,7 @@ if [ -n "$PLAN_MODEL" ]; then
   EXECUTOR_MODEL="$PLAN_MODEL"
 else
   # Fall back to profile lookup
-  EXECUTOR_MODEL=$(lookup_profile_model "fuckit-executor" "$MODEL_PROFILE")
+  EXECUTOR_MODEL=$(lookup_profile_model "fuckit:executor" "$MODEL_PROFILE")
 fi
 ```
 
@@ -109,14 +109,14 @@ Invalid model names are ignored (falls back to profile).
 
 ## Design Rationale
 
-**Why Opus for fuckit-planner?**
+**Why Opus for fuckit:planner?**
 Planning involves architecture decisions, goal decomposition, and task design. This is where model quality has the highest impact.
 
-**Why Sonnet for fuckit-executor?**
+**Why Sonnet for fuckit:executor?**
 Executors follow explicit PLAN.md instructions. The plan already contains the reasoning; execution is implementation.
 
 **Why Sonnet (not Haiku) for verifiers in balanced?**
 Verification requires goal-backward reasoning - checking if code *delivers* what the phase promised, not just pattern matching. Sonnet handles this well; Haiku may miss subtle gaps.
 
-**Why Haiku for fuckit-codebase-mapper?**
+**Why Haiku for fuckit:codebase-mapper?**
 Read-only exploration and pattern extraction. No reasoning required, just structured output from file contents.

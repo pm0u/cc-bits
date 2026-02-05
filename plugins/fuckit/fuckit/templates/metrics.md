@@ -146,7 +146,7 @@ Rolling log of last 20 activities:
 
 ## Collection Points
 
-### After plan execution (fuckit-executor)
+### After plan execution (fuckit:executor)
 
 ```javascript
 // Update metrics after each plan completes
@@ -181,7 +181,7 @@ metrics.updated = new Date().toISOString();
 fs.writeFileSync('.planning/metrics.json', JSON.stringify(metrics, null, 2));
 ```
 
-### After verification (fuckit-verifier)
+### After verification (fuckit:verifier)
 
 ```javascript
 metrics.verification.runs++;

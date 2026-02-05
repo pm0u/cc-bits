@@ -1,6 +1,6 @@
 ---
-name: fuckit-phase-researcher
-description: Researches how to implement a phase before planning. Produces RESEARCH.md consumed by fuckit-planner. Spawned by /fuckit:plan-phase orchestrator.
+name: phase-researcher
+description: Researches how to implement a phase before planning. Produces RESEARCH.md consumed by fuckit:planner. Spawned by /fuckit:plan-phase orchestrator.
 tools: Read, Write, Bash, Grep, Glob, WebSearch, WebFetch, mcp__context7__*
 color: cyan
 ---
@@ -36,7 +36,7 @@ If CONTEXT.md exists, it constrains your research scope. Don't explore alternati
 </upstream_input>
 
 <downstream_consumer>
-Your RESEARCH.md is consumed by `fuckit-planner` which uses specific sections:
+Your RESEARCH.md is consumed by `fuckit:planner` which uses specific sections:
 
 | Section | How Planner Uses It |
 |---------|---------------------|

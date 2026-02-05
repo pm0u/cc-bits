@@ -390,9 +390,9 @@ Default to "balanced" if not set.
 
 | Agent | quality | balanced | budget |
 |-------|---------|----------|--------|
-| fuckit-project-researcher | opus | sonnet | haiku |
-| fuckit-research-synthesizer | sonnet | sonnet | haiku |
-| fuckit-roadmapper | opus | sonnet | sonnet |
+| fuckit:project-researcher | opus | sonnet | haiku |
+| fuckit:research-synthesizer | sonnet | sonnet | haiku |
+| fuckit:roadmapper | opus | sonnet | sonnet |
 
 Store resolved models for use in Task calls below.
 
@@ -436,10 +436,10 @@ Display spawning indicator:
   → Pitfalls research
 ```
 
-Spawn 4 parallel fuckit-project-researcher agents with rich context:
+Spawn 4 parallel fuckit:project-researcher agents with rich context:
 
 ```
-Task(prompt="First, read ~/.claude/agents/fuckit-project-researcher.md for your role and instructions.
+Task(prompt="First, read ~/.claude/agents/project-researcher.md for your role and instructions.
 
 <research_type>
 Project Research — Stack dimension for [domain].
@@ -479,7 +479,7 @@ Use template: ~/.claude/plugins/marketplaces/fuckit/fuckit/templates/research-pr
 </output>
 ", subagent_type="general-purpose", model="{researcher_model}", description="Stack research")
 
-Task(prompt="First, read ~/.claude/agents/fuckit-project-researcher.md for your role and instructions.
+Task(prompt="First, read ~/.claude/agents/project-researcher.md for your role and instructions.
 
 <research_type>
 Project Research — Features dimension for [domain].
@@ -519,7 +519,7 @@ Use template: ~/.claude/plugins/marketplaces/fuckit/fuckit/templates/research-pr
 </output>
 ", subagent_type="general-purpose", model="{researcher_model}", description="Features research")
 
-Task(prompt="First, read ~/.claude/agents/fuckit-project-researcher.md for your role and instructions.
+Task(prompt="First, read ~/.claude/agents/project-researcher.md for your role and instructions.
 
 <research_type>
 Project Research — Architecture dimension for [domain].
@@ -559,7 +559,7 @@ Use template: ~/.claude/plugins/marketplaces/fuckit/fuckit/templates/research-pr
 </output>
 ", subagent_type="general-purpose", model="{researcher_model}", description="Architecture research")
 
-Task(prompt="First, read ~/.claude/agents/fuckit-project-researcher.md for your role and instructions.
+Task(prompt="First, read ~/.claude/agents/project-researcher.md for your role and instructions.
 
 <research_type>
 Project Research — Pitfalls dimension for [domain].
@@ -621,7 +621,7 @@ Write to: .planning/research/SUMMARY.md
 Use template: ~/.claude/plugins/marketplaces/fuckit/fuckit/templates/research-project/SUMMARY.md
 Commit after writing.
 </output>
-", subagent_type="fuckit-research-synthesizer", model="{synthesizer_model}", description="Synthesize research")
+", subagent_type="fuckit:research-synthesizer", model="{synthesizer_model}", description="Synthesize research")
 ```
 
 Display research complete banner and key findings:
@@ -795,7 +795,7 @@ Display stage banner:
 ◆ Spawning roadmapper...
 ```
 
-Spawn fuckit-roadmapper agent with context:
+Spawn fuckit:roadmapper agent with context:
 
 ```
 Task(prompt="
@@ -826,7 +826,7 @@ Create roadmap:
 
 Write files first, then return. This ensures artifacts persist even if context is lost.
 </instructions>
-", subagent_type="fuckit-roadmapper", model="{roadmapper_model}", description="Create roadmap")
+", subagent_type="fuckit:roadmapper", model="{roadmapper_model}", description="Create roadmap")
 ```
 
 **Handle roadmapper return:**
@@ -902,7 +902,7 @@ Use AskUserQuestion:
   Update the roadmap based on feedback. Edit files in place.
   Return ROADMAP REVISED with changes made.
   </revision>
-  ", subagent_type="fuckit-roadmapper", model="{roadmapper_model}", description="Revise roadmap")
+  ", subagent_type="fuckit:roadmapper", model="{roadmapper_model}", description="Revise roadmap")
   ```
 - Present revised roadmap
 - Loop until user approves
@@ -995,7 +995,7 @@ Present completion with next steps:
 - [ ] Requirements gathered (from research or conversation)
 - [ ] User scoped each category (v1/v2/out of scope)
 - [ ] REQUIREMENTS.md created with REQ-IDs → **committed**
-- [ ] fuckit-roadmapper spawned with context
+- [ ] fuckit:roadmapper spawned with context
 - [ ] Roadmap files written immediately (not draft)
 - [ ] User feedback incorporated (if any)
 - [ ] ROADMAP.md created with phases, requirement mappings, success criteria

@@ -177,8 +177,8 @@ This helps users understand resource usage and identify heavy plans.
 
    | Agent | quality | balanced | budget |
    |-------|---------|----------|--------|
-   | fuckit-executor | opus | sonnet | sonnet |
-   | fuckit-verifier | sonnet | sonnet | haiku |
+   | fuckit:executor | opus | sonnet | sonnet |
+   | fuckit:verifier | sonnet | sonnet | haiku |
 
    Store resolved models for use in Task calls below.
 
@@ -200,7 +200,7 @@ This helps users understand resource usage and identify heavy plans.
 
 4. **Execute waves**
    For each wave in order:
-   - Spawn `fuckit-executor` for each plan in wave (parallel Task calls)
+   - Spawn `fuckit:executor` for each plan in wave (parallel Task calls)
    - Wait for completion (Task blocks)
    - Verify SUMMARYs created
    - Proceed to next wave
@@ -232,7 +232,7 @@ This helps users understand resource usage and identify heavy plans.
    **If `workflow.verifier` is `false`:** Skip to step 8 (treat as passed).
 
    **Otherwise:**
-   - Spawn `fuckit-verifier` subagent with phase directory and goal
+   - Spawn `fuckit:verifier` subagent with phase directory and goal
    - Verifier checks must_haves against actual codebase (not SUMMARY claims)
    - Creates VERIFICATION.md with detailed report
    - Route by status:
@@ -396,9 +396,9 @@ STATE_CONTENT=$(cat .planning/STATE.md)
 Spawn all plans in a wave with a single message containing multiple Task calls, with inlined content:
 
 ```
-Task(prompt="Execute plan at {plan_01_path}\n\nPlan:\n{plan_01_content}\n\nProject state:\n{state_content}", subagent_type="fuckit-executor", model="{executor_model}")
-Task(prompt="Execute plan at {plan_02_path}\n\nPlan:\n{plan_02_content}\n\nProject state:\n{state_content}", subagent_type="fuckit-executor", model="{executor_model}")
-Task(prompt="Execute plan at {plan_03_path}\n\nPlan:\n{plan_03_content}\n\nProject state:\n{state_content}", subagent_type="fuckit-executor", model="{executor_model}")
+Task(prompt="Execute plan at {plan_01_path}\n\nPlan:\n{plan_01_content}\n\nProject state:\n{state_content}", subagent_type="fuckit:executor", model="{executor_model}")
+Task(prompt="Execute plan at {plan_02_path}\n\nPlan:\n{plan_02_content}\n\nProject state:\n{state_content}", subagent_type="fuckit:executor", model="{executor_model}")
+Task(prompt="Execute plan at {plan_03_path}\n\nPlan:\n{plan_03_content}\n\nProject state:\n{state_content}", subagent_type="fuckit:executor", model="{executor_model}")
 ```
 
 All three run in parallel. Task tool blocks until all complete.

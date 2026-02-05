@@ -96,7 +96,7 @@ If no must_haves in frontmatter, derive using goal-backward process:
 
 5. **Document derived must-haves** before proceeding to verification.
 
-<!-- Goal-backward derivation expertise is baked into the fuckit-verifier agent -->
+<!-- Goal-backward derivation expertise is baked into the fuckit:verifier agent -->
 </step>
 
 <step name="verify_truths">

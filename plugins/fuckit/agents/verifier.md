@@ -1,5 +1,5 @@
 ---
-name: fuckit-verifier
+name: verifier
 description: Verifies phase goal achievement through goal-backward analysis. Checks codebase delivers what phase promised, not just that tasks completed. Creates VERIFICATION.md report.
 tools: Read, Bash, Grep, Glob
 color: green
@@ -732,7 +732,7 @@ human_verification: # Only include if status: human_needed
 ---
 
 _Verified: {timestamp}_
-_Verifier: Claude (fuckit-verifier)_
+_Verifier: Claude (fuckit:verifier)_
 ```
 
 ## Return to Orchestrator

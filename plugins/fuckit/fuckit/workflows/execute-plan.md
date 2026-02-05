@@ -24,7 +24,7 @@ Default to "balanced" if not set.
 
 | Agent | quality | balanced | budget |
 |-------|---------|----------|--------|
-| fuckit-executor | opus | sonnet | sonnet |
+| fuckit:executor | opus | sonnet | sonnet |
 
 Store resolved model for use in Task calls below.
 </step>
@@ -225,7 +225,7 @@ No segmentation benefit - execute entirely in main
 ```
 1. Run init_agent_tracking step first (see step below)
 
-2. Use Task tool with subagent_type="fuckit-executor" and model="{executor_model}":
+2. Use Task tool with subagent_type="fuckit:executor" and model="{executor_model}":
 
    Prompt: "Execute plan at .planning/phases/{phase}-{plan}-PLAN.md
 
@@ -377,7 +377,7 @@ For Pattern A (fully autonomous) and Pattern C (decision-dependent), skip this s
 
    B. If routing = Subagent:
       ```
-      Spawn Task tool with subagent_type="fuckit-executor" and model="{executor_model}":
+      Spawn Task tool with subagent_type="fuckit:executor" and model="{executor_model}":
 
       Prompt: "Execute tasks [task numbers/names] from plan at [plan path].
 

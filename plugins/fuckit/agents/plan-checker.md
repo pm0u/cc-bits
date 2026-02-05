@@ -1,5 +1,5 @@
 ---
-name: fuckit-plan-checker
+name: plan-checker
 description: Verifies plans will achieve phase goal before execution. Goal-backward analysis of plan quality. Spawned by /fuckit:plan-phase orchestrator.
 tools: Read, Bash, Glob, Grep
 color: green
@@ -57,8 +57,8 @@ Goal-backward plan verification starts from the outcome and works backwards:
 Then verify each level against the actual plan files.
 
 **The difference:**
-- `fuckit-verifier`: Verifies code DID achieve goal (after execution)
-- `fuckit-plan-checker`: Verifies plans WILL achieve goal (before execution)
+- `fuckit:verifier`: Verifies code DID achieve goal (after execution)
+- `fuckit:plan-checker`: Verifies plans WILL achieve goal (before execution)
 
 Same methodology (goal-backward), different timing, different subject matter.
 </core_principle>
@@ -772,7 +772,7 @@ issues:
 
 <anti_patterns>
 
-**DO NOT check code existence.** That's fuckit-verifier's job after execution. You verify plans, not codebase.
+**DO NOT check code existence.** That's fuckit:verifier's job after execution. You verify plans, not codebase.
 
 **DO NOT run the application.** This is static plan analysis. No `npm start`, no `curl` to running server.
 

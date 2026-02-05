@@ -39,8 +39,8 @@ Default to "balanced" if not set or config missing.
 
 | Agent | quality | balanced | budget |
 |-------|---------|----------|--------|
-| fuckit-executor | opus | sonnet | sonnet |
-| fuckit-verifier | sonnet | sonnet | haiku |
+| fuckit:executor | opus | sonnet | sonnet |
+| fuckit:verifier | sonnet | sonnet | haiku |
 | general-purpose | — | — | — |
 
 **Per-plan override:**
@@ -57,7 +57,7 @@ if [ -n "$PLAN_MODEL" ] && echo "$PLAN_MODEL" | grep -qE "^(opus|sonnet|haiku)$"
   echo "Plan $PLAN_ID uses model override: $PLAN_MODEL"
 else
   # Fall back to profile
-  EXECUTOR_MODEL=$(lookup_from_table "fuckit-executor" "$MODEL_PROFILE")
+  EXECUTOR_MODEL=$(lookup_from_table "fuckit:executor" "$MODEL_PROFILE")
 fi
 ```
 
@@ -528,7 +528,7 @@ Plans with `autonomous: false` require user interaction.
 
 1. **Spawn agent for checkpoint plan:**
    ```
-   Task(prompt="{subagent-task-prompt}", subagent_type="fuckit-executor", model="{executor_model}")
+   Task(prompt="{subagent-task-prompt}", subagent_type="fuckit:executor", model="{executor_model}")
    ```
 
 2. **Agent runs until checkpoint:**
@@ -567,7 +567,7 @@ Plans with `autonomous: false` require user interaction.
    ```
    Task(
      prompt=filled_continuation_template,
-     subagent_type="fuckit-executor",
+     subagent_type="fuckit:executor",
      model="{executor_model}"
    )
    ```
@@ -644,7 +644,7 @@ Phase goal: {goal from ROADMAP.md}
 
 Check must_haves against actual codebase. Create VERIFICATION.md.
 Verify what actually exists in the code.",
-  subagent_type="fuckit-verifier",
+  subagent_type="fuckit:verifier",
   model="{verifier_model}"
 )
 ```

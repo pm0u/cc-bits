@@ -9,7 +9,7 @@ allowed-tools:
 ---
 
 <objective>
-Research how to implement a phase. Spawns fuckit-phase-researcher agent with phase context.
+Research how to implement a phase. Spawns fuckit:phase-researcher agent with phase context.
 
 **Note:** This is a standalone research command. For most workflows, use `/fuckit:plan-phase` which integrates research automatically.
 
@@ -45,7 +45,7 @@ Default to "balanced" if not set.
 
 | Agent | quality | balanced | budget |
 |-------|---------|----------|--------|
-| fuckit-phase-researcher | opus | sonnet | haiku |
+| fuckit:phase-researcher | opus | sonnet | haiku |
 
 Store resolved model for use in Task calls below.
 
@@ -87,7 +87,7 @@ grep -A30 "### Decisions Made" .planning/STATE.md 2>/dev/null
 
 Present summary with phase description, requirements, prior decisions.
 
-## 4. Spawn fuckit-phase-researcher Agent
+## 4. Spawn fuckit:phase-researcher Agent
 
 Research modes: ecosystem (default), feasibility, implementation, comparison.
 
@@ -148,7 +148,7 @@ Write to: .planning/phases/${PHASE}-{slug}/${PHASE}-RESEARCH.md
 
 ```
 Task(
-  prompt="First, read ~/.claude/agents/fuckit-phase-researcher.md for your role and instructions.\n\n" + filled_prompt,
+  prompt="First, read ~/.claude/agents/phase-researcher.md for your role and instructions.\n\n" + filled_prompt,
   subagent_type="general-purpose",
   model="{researcher_model}",
   description="Research Phase {phase}"
@@ -182,7 +182,7 @@ Research file: @.planning/phases/${PHASE}-{slug}/${PHASE}-RESEARCH.md
 
 ```
 Task(
-  prompt="First, read ~/.claude/agents/fuckit-phase-researcher.md for your role and instructions.\n\n" + continuation_prompt,
+  prompt="First, read ~/.claude/agents/phase-researcher.md for your role and instructions.\n\n" + continuation_prompt,
   subagent_type="general-purpose",
   model="{researcher_model}",
   description="Continue research Phase {phase}"
@@ -194,7 +194,7 @@ Task(
 <success_criteria>
 - [ ] Phase validated against roadmap
 - [ ] Existing research checked
-- [ ] fuckit-phase-researcher spawned with context
+- [ ] fuckit:phase-researcher spawned with context
 - [ ] Checkpoints handled correctly
 - [ ] User knows next steps
 </success_criteria>

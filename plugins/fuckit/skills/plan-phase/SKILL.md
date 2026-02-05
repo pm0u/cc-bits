@@ -2,7 +2,7 @@
 name: fuckit:plan-phase
 description: Create detailed execution plan for a phase (PLAN.md) with verification loop
 argument-hint: "[phase] [--research] [--skip-research] [--gaps] [--skip-verify]"
-agent: fuckit-planner
+agent: fuckit:planner
 allowed-tools:
   - Read
   - Write
@@ -23,7 +23,7 @@ Create executable phase prompts (PLAN.md files) for a roadmap phase with integra
 
 **Default flow:** Research (if needed) → Plan → Verify → Done
 
-**Orchestrator role:** Parse arguments, validate phase, research domain (unless skipped or exists), spawn fuckit-planner agent, verify plans with fuckit-plan-checker, iterate until plans pass or max iterations reached, present results.
+**Orchestrator role:** Parse arguments, validate phase, research domain (unless skipped or exists), spawn fuckit:planner agent, verify plans with fuckit:plan-checker, iterate until plans pass or max iterations reached, present results.
 
 **Why subagents:** Research and planning burn context fast. Verification uses fresh context. User sees the flow between agents in main context.
 </objective>
@@ -62,9 +62,9 @@ Default to "balanced" if not set.
 
 | Agent | quality | balanced | budget |
 |-------|---------|----------|--------|
-| fuckit-phase-researcher | opus | sonnet | haiku |
-| fuckit-planner | opus | opus | sonnet |
-| fuckit-plan-checker | sonnet | sonnet | haiku |
+| fuckit:phase-researcher | opus | sonnet | haiku |
+| fuckit:planner | opus | opus | sonnet |
+| fuckit:plan-checker | sonnet | sonnet | haiku |
 
 Store resolved models for use in Task calls below.
 
@@ -169,7 +169,7 @@ Display stage banner:
 
 Proceed to spawn researcher
 
-### Spawn fuckit-phase-researcher
+### Spawn fuckit:phase-researcher
 
 Gather additional context for research prompt:
 
@@ -223,7 +223,7 @@ Write research findings to: {phase_dir}/{phase}-RESEARCH.md
 
 ```
 Task(
-  prompt="First, read ~/.claude/agents/fuckit-phase-researcher.md for your role and instructions.\n\n" + research_prompt,
+  prompt="First, read ~/.claude/agents/phase-researcher.md for your role and instructions.\n\n" + research_prompt,
   subagent_type="general-purpose",
   model="{researcher_model}",
   description="Research Phase {phase}"
@@ -268,7 +268,7 @@ VERIFICATION_CONTENT=$(cat "${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null)
 UAT_CONTENT=$(cat "${PHASE_DIR}"/*-UAT.md 2>/dev/null)
 ```
 
-## 8. Spawn fuckit-planner Agent
+## 8. Spawn fuckit:planner Agent
 
 Display stage banner:
 ```
@@ -338,7 +338,7 @@ Before returning PLANNING COMPLETE:
 
 ```
 Task(
-  prompt="First, read ~/.claude/agents/fuckit-planner.md for your role and instructions.\n\n" + filled_prompt,
+  prompt="First, read ~/.claude/agents/planner.md for your role and instructions.\n\n" + filled_prompt,
   subagent_type="general-purpose",
   model="{planner_model}",
   description="Plan Phase {phase}"
@@ -364,7 +364,7 @@ Parse planner output:
 - Offer: Add context, Retry, Manual
 - Wait for user response
 
-## 10. Spawn fuckit-plan-checker Agent
+## 10. Spawn fuckit:plan-checker Agent
 
 Display:
 ```
@@ -422,7 +422,7 @@ Return one of:
 ```
 Task(
   prompt=checker_prompt,
-  subagent_type="fuckit-plan-checker",
+  subagent_type="fuckit:plan-checker",
   model="{checker_model}",
   description="Verify Phase {phase} plans"
 )
@@ -455,7 +455,7 @@ PLANS_CONTENT=$(cat "${PHASE_DIR}"/*-PLAN.md 2>/dev/null)
 # CONTEXT_CONTENT already loaded in step 4
 ```
 
-Spawn fuckit-planner with revision prompt:
+Spawn fuckit:planner with revision prompt:
 
 ```markdown
 <revision_context>
@@ -487,7 +487,7 @@ Return what changed.
 
 ```
 Task(
-  prompt="First, read ~/.claude/agents/fuckit-planner.md for your role and instructions.\n\n" + revision_prompt,
+  prompt="First, read ~/.claude/agents/planner.md for your role and instructions.\n\n" + revision_prompt,
   subagent_type="general-purpose",
   model="{planner_model}",
   description="Revise Phase {phase} plans"
@@ -557,11 +557,11 @@ Verification: {Passed | Passed with override | Skipped}
 - [ ] Phase directory created if needed
 - [ ] CONTEXT.md loaded early (step 4) and passed to ALL agents
 - [ ] Research completed (unless --skip-research or --gaps or exists)
-- [ ] fuckit-phase-researcher spawned with CONTEXT.md (constrains research scope)
+- [ ] fuckit:phase-researcher spawned with CONTEXT.md (constrains research scope)
 - [ ] Existing plans checked
-- [ ] fuckit-planner spawned with context (CONTEXT.md + RESEARCH.md)
+- [ ] fuckit:planner spawned with context (CONTEXT.md + RESEARCH.md)
 - [ ] Plans created (PLANNING COMPLETE or CHECKPOINT handled)
-- [ ] fuckit-plan-checker spawned with CONTEXT.md (verifies context compliance)
+- [ ] fuckit:plan-checker spawned with CONTEXT.md (verifies context compliance)
 - [ ] Verification passed OR user override OR max iterations with user decision
 - [ ] User sees status between agent spawns
 - [ ] User knows next steps (execute or review)
