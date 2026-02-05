@@ -66,24 +66,12 @@ process.stdin.on('end', () => {
       }
     }
 
-    // FUCKIT update available?
-    let fuckitUpdate = '';
-    const cacheFile = path.join(homeDir, '.claude', 'cache', 'fuckit-update-check.json');
-    if (fs.existsSync(cacheFile)) {
-      try {
-        const cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-        if (cache.update_available) {
-          fuckitUpdate = '\x1b[33m⬆ /fuckit:update\x1b[0m │ ';
-        }
-      } catch (e) {}
-    }
-
     // Output
     const dirname = path.basename(dir);
     if (task) {
-      process.stdout.write(`${fuckitUpdate}\x1b[2m${model}\x1b[0m │ \x1b[1m${task}\x1b[0m │ \x1b[2m${dirname}\x1b[0m${ctx}`);
+      process.stdout.write(`\x1b[2m${model}\x1b[0m │ \x1b[1m${task}\x1b[0m │ \x1b[2m${dirname}\x1b[0m${ctx}`);
     } else {
-      process.stdout.write(`${fuckitUpdate}\x1b[2m${model}\x1b[0m │ \x1b[2m${dirname}\x1b[0m${ctx}`);
+      process.stdout.write(`\x1b[2m${model}\x1b[0m │ \x1b[2m${dirname}\x1b[0m${ctx}`);
     }
   } catch (e) {
     // Silent fail - don't break statusline on parse errors
