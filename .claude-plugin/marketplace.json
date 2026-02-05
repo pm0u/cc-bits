@@ -1,17 +1,18 @@
 {
-  "name": "fuckit-cc",
+  "name": "claude-marketplace",
   "owner": {
     "name": "Paul Mourer",
     "url": "https://github.com/pm0u"
   },
   "metadata": {
-    "description": "FUCKIT - A meta-prompting, context engineering and spec-driven development system for Claude Code",
+    "description": "A collection of tools I like",
     "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "fuckit",
-      "source": "./plugins/fuckit"
+      "source": "./plugins/fuckit",
+      "description": "FUCKIT - A meta-prompting, context engineering and spec-driven development system for Claude Code"
     }
   ]
 }
