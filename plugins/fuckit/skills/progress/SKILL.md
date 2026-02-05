@@ -77,10 +77,24 @@ If missing both ROADMAP.md and PROJECT.md: suggest `/fuckit:new-project`.
 <step name="report">
 **Present rich status report:**
 
+**Calculate percentage:**
+```bash
+TOTAL_PLANS=$(find .planning/phases -name "*-PLAN.md" 2>/dev/null | wc -l | tr -d ' ')
+COMPLETED_PLANS=$(find .planning/phases -name "*-SUMMARY.md" 2>/dev/null | wc -l | tr -d ' ')
+PERCENTAGE=$((COMPLETED_PLANS * 100 / TOTAL_PLANS))
+```
+
+**Generate progress bar (10 chars):**
+```bash
+FILLED=$((PERCENTAGE / 10))
+EMPTY=$((10 - FILLED))
+BAR=$(printf '█%.0s' $(seq 1 $FILLED 2>/dev/null))$(printf '░%.0s' $(seq 1 $EMPTY 2>/dev/null))
+```
+
 ```
 # [Project Name]
 
-**Progress:** [████████░░] 8/10 plans complete
+**Progress:** [{BAR}] {COMPLETED_PLANS}/{TOTAL_PLANS} plans ({PERCENTAGE}%)
 **Profile:** [quality/balanced/budget]
 
 ## Recent Work
@@ -108,6 +122,21 @@ CONTEXT: [✓ if CONTEXT.md exists | - if not]
 
 ## What's Next
 [Next phase/plan objective from ROADMAP]
+
+## Metrics (if available)
+```bash
+# Check if metrics file exists
+if [ -f .planning/metrics.json ]; then
+  # Read metrics using Node.js
+  node -e "
+    const m = JSON.parse(require('fs').readFileSync('.planning/metrics.json'));
+    console.log('- Execution time: ' + (m.execution.total_duration_ms / 3600000).toFixed(1) + ' hours');
+    console.log('- Verification pass rate: ' + (m.verification.pass_rate * 100).toFixed(0) + '%');
+    if (m.failures.total > 0) console.log('- Failures: ' + m.failures.total);
+    if (m.failures.undos > 0) console.log('- Undos: ' + m.failures.undos);
+  " 2>/dev/null
+fi
+```
 ```
 
 </step>

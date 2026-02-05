@@ -426,6 +426,108 @@ Categorize findings:
 - ⚠️ Warning: Indicates incomplete (TODO comments, console.log)
 - ℹ️ Info: Notable but not problematic
 
+## Step 7.5: Execute Automated Tests (Optional)
+
+If must_haves includes a `tests` section, run automated tests as Level 4 verification.
+
+**Check for tests in must_haves:**
+
+```bash
+grep -A20 "must_haves:" "$PLAN_FILE" | grep -A10 "tests:" | head -15
+```
+
+**If tests section exists:**
+
+For each test entry:
+
+```bash
+run_test() {
+  local name="$1"
+  local command="$2"
+  local expect_exit="$3"
+  local expect_contains="$4"
+  local timeout="${5:-30000}"
+
+  echo "Running test: $name"
+
+  # Execute with timeout
+  OUTPUT=$(timeout $((timeout/1000)) bash -c "$command" 2>&1)
+  EXIT_CODE=$?
+
+  # Check exit code if specified
+  if [ -n "$expect_exit" ]; then
+    if [ "$EXIT_CODE" -ne "$expect_exit" ]; then
+      echo "FAIL: Expected exit $expect_exit, got $EXIT_CODE"
+      echo "Output: $OUTPUT"
+      return 1
+    fi
+  fi
+
+  # Check output contains if specified
+  if [ -n "$expect_contains" ]; then
+    if ! echo "$OUTPUT" | grep -q "$expect_contains"; then
+      echo "FAIL: Output missing '$expect_contains'"
+      echo "Output: $OUTPUT"
+      return 1
+    fi
+  fi
+
+  echo "PASS: $name"
+  return 0
+}
+```
+
+**Handle server-dependent tests:**
+
+If test has `requires_server: true`:
+
+1. Start server: `$server_command &`
+2. Wait for ready: `while ! grep -q "$server_ready_pattern" server.log; do sleep 1; done`
+3. Run test
+4. Kill server: `kill $SERVER_PID`
+
+**Record test results:**
+
+Track for VERIFICATION.md:
+- Test name
+- Command run
+- Expected outcome
+- Actual outcome
+- Pass/Fail status
+- Error output (if failed)
+
+**Test failures count as gaps:**
+
+Failed tests are added to gaps list:
+```yaml
+gaps:
+  - truth: "Test: {test_name}"
+    status: failed
+    reason: "Test failed with exit code {code}"
+    artifacts: []
+    missing:
+      - "Fix: {error message summary}"
+```
+
+**Skip tests if configured:**
+
+Check config.json:
+```bash
+RUN_TESTS=$(cat .planning/config.json 2>/dev/null | grep -o '"run_tests"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+```
+
+If `RUN_TESTS=false`, skip this step.
+
+**Auto-detect tests (if no explicit tests):**
+
+```bash
+# Check for test script
+if [ -f package.json ] && grep -q '"test"' package.json; then
+  echo "Auto-detected: npm test available"
+  # Offer to run if not explicitly configured
+fi
+```
+
 ## Step 8: Identify Human Verification Needs
 
 Some things can't be verified programmatically:
@@ -596,6 +698,18 @@ human_verification: # Only include if status: human_needed
 
 | From | To  | Via | Status | Details |
 | ---- | --- | --- | ------ | ------- |
+
+### Automated Test Results
+
+| Test | Command | Expected | Actual | Status |
+|------|---------|----------|--------|--------|
+| {name} | {command} | {expected} | {actual} | ✓/✗ |
+
+**Tests run:** {N}
+**Passed:** {X}
+**Failed:** {Y}
+
+{If any failed, include failure output}
 
 ### Requirements Coverage
 

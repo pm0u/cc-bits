@@ -1,7 +1,7 @@
 ---
 name: fuckit:execute-phase
 description: Execute all plans in a phase with wave-based parallelization
-argument-hint: "<phase-number> [--gaps-only]"
+argument-hint: "<phase-number> [--gaps-only] [--dry-run]"
 allowed-tools:
   - Read
   - Write
@@ -32,10 +32,136 @@ Phase: $ARGUMENTS
 
 **Flags:**
 - `--gaps-only` — Execute only gap closure plans (plans with `gap_closure: true` in frontmatter). Use after verify-work creates fix plans.
+- `--dry-run` — Preview what would be executed without running anything. Shows plans, tasks, waves, and estimated commits.
+- `--skip-tests` — Skip automated test execution during verification.
+- `--skip-tripped` — Skip plans that have hit the circuit breaker (3+ failures).
+- `--verbose` — Show detailed execution info including context estimates, timing, and agent outputs.
 
 @.planning/ROADMAP.md
 @.planning/STATE.md
 </context>
+
+<dry_run_mode>
+When `--dry-run` flag is present, instead of executing:
+
+**1. Validate phase and discover plans (same as normal):**
+```bash
+PHASE_DIR=$(ls -d .planning/phases/${PHASE_ARG}-* .planning/phases/0${PHASE_ARG}-* 2>/dev/null | head -1)
+PLANS=$(ls -1 "$PHASE_DIR"/*-PLAN.md 2>/dev/null)
+SUMMARIES=$(ls -1 "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null)
+```
+
+**2. Analyze each plan without executing:**
+
+For each PLAN.md, extract:
+- Plan name from header
+- Wave number from frontmatter
+- Task count (grep for `<task`)
+- Files that would be modified (from `files_modified` frontmatter)
+- Checkpoint status (autonomous: true/false)
+- Dependencies (depends_on)
+
+**3. Output dry-run report:**
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FUCKIT ► DRY RUN — Phase {X}: {Name}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## Execution Preview
+
+**Plans:** {total} ({completed} complete, {pending} pending)
+**Waves:** {wave_count}
+**Tasks:** {total_tasks}
+**Est. commits:** {task_count + plan_count} (1 per task + 1 per plan)
+
+## Wave Breakdown
+
+### Wave 1 (Parallel)
+
+| Plan | Name | Tasks | Files | Checkpoints |
+|------|------|-------|-------|-------------|
+| 03-01 | Auth Setup | 3 | 5 | None |
+| 03-02 | JWT Service | 2 | 3 | None |
+
+**Estimated context:** ~{X}% per agent (based on task count × ~10%)
+
+### Wave 2 (Depends on Wave 1)
+
+| Plan | Name | Tasks | Files | Checkpoints |
+|------|------|-------|-------|-------------|
+| 03-03 | Login UI | 4 | 6 | 1 (human-verify) |
+
+**Estimated time:** ~{X} context windows
+
+## Files to be Modified
+
+```
+src/auth/index.ts        (03-01)
+src/auth/jwt.ts          (03-01, 03-02)
+src/components/Login.tsx (03-03)
+...
+```
+
+## Checkpoints Expected
+
+1. **Plan 03-03, Task 4:** human-verify (UI approval)
+
+## Potential Conflicts
+
+{If any wave has overlapping files_modified, warn here}
+
+───────────────────────────────────────────────────────────────
+
+Ready to execute?
+
+/fuckit:execute-phase {X}  (remove --dry-run)
+
+───────────────────────────────────────────────────────────────
+```
+
+**No agents spawned, no code modified, no commits made.**
+</dry_run_mode>
+
+<verbose_mode>
+When `--verbose` flag is present, output additional information:
+
+**Before spawning agents:**
+```
+## Spawning Wave {N} Agents
+
+**Model profile:** {profile}
+**Parallelization:** {enabled/disabled}
+
+| Plan | Model | Est. Context | Files |
+|------|-------|--------------|-------|
+| 03-01 | sonnet | ~40% | 5 |
+| 03-02 | opus (override) | ~35% | 3 |
+
+Spawning {N} agents...
+```
+
+**After each agent completes:**
+```
+## Agent Complete: {plan_id}
+
+**Duration:** {X}s
+**Tasks:** {N}/{M}
+**Commits:** {count}
+**Context used:** ~{X}% (estimated from response size)
+
+**Output preview:**
+{first 500 chars of agent output}
+```
+
+**Context estimation formula:**
+- Base: 15% for plan loading and state
+- Per task: ~8-12% depending on complexity
+- Verification: ~5%
+- Total estimate = base + (tasks × avg_per_task)
+
+This helps users understand resource usage and identify heavy plans.
+</verbose_mode>
 
 <process>
 0. **Resolve Model Profile**

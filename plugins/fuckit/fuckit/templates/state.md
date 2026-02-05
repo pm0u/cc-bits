@@ -66,6 +66,16 @@ None yet.
 
 None yet.
 
+### Recent Failures
+
+[Tracked for circuit breaker - auto-pause after repeated failures]
+
+| Plan | Count | Last Error | Last Attempt |
+|------|-------|------------|--------------|
+| - | - | - | - |
+
+*Auto-cleared after 24 hours or successful execution*
+
 ## Session Continuity
 
 Last session: [YYYY-MM-DD HH:MM]
@@ -154,6 +164,14 @@ Updated after each plan completion.
 - Issues that affect future work
 - Prefix with originating phase
 - Cleared when addressed
+
+**Recent Failures:** Circuit breaker tracking
+- Plan ID that failed
+- Failure count (consecutive)
+- Last error message
+- Last attempt timestamp
+- Auto-cleared after 24h or successful execution
+- Triggers pause after 3 consecutive failures on same plan
 
 ### Session Continuity
 Enables instant resumption:

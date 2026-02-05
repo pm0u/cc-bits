@@ -9,20 +9,33 @@ The orchestrator's job is coordination, not execution. Each subagent loads the f
 <required_reading>
 Read STATE.md before any operation to load project context.
 Read config.json for planning behavior settings.
+Validate state consistency before proceeding.
 </required_reading>
+
+<references>
+@~/.claude/plugins/marketplaces/fuckit/fuckit/references/state-validation.md
+@~/.claude/plugins/marketplaces/fuckit/fuckit/references/config-parsing.md
+</references>
 
 <process>
 
 <step name="resolve_model_profile" priority="first">
-Read model profile for agent spawning:
+Read model profile for agent spawning using reliable JSON parsing:
 
 ```bash
-MODEL_PROFILE=$(cat .planning/config.json 2>/dev/null | grep -o '"model_profile"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || echo "balanced")
+# Use Node.js for reliable JSON parsing (see config-parsing.md)
+MODEL_PROFILE=$(node -e "
+  const fs = require('fs');
+  try {
+    const c = JSON.parse(fs.readFileSync('.planning/config.json'));
+    console.log(c.model_profile || 'balanced');
+  } catch { console.log('balanced'); }
+" 2>/dev/null)
 ```
 
-Default to "balanced" if not set.
+Default to "balanced" if not set or config missing.
 
-**Model lookup table:**
+**Model lookup table (project-wide defaults):**
 
 | Agent | quality | balanced | budget |
 |-------|---------|----------|--------|
@@ -30,7 +43,25 @@ Default to "balanced" if not set.
 | fuckit-verifier | sonnet | sonnet | haiku |
 | general-purpose | — | — | — |
 
-Store resolved models for use in Task calls below.
+**Per-plan override:**
+
+When spawning executors, check each plan for model override:
+
+```bash
+# For each plan, check for per-plan model override
+PLAN_MODEL=$(grep "^model:" "$PLAN_FILE" | cut -d: -f2 | tr -d ' "')
+
+if [ -n "$PLAN_MODEL" ] && echo "$PLAN_MODEL" | grep -qE "^(opus|sonnet|haiku)$"; then
+  # Valid per-plan override
+  EXECUTOR_MODEL="$PLAN_MODEL"
+  echo "Plan $PLAN_ID uses model override: $PLAN_MODEL"
+else
+  # Fall back to profile
+  EXECUTOR_MODEL=$(lookup_from_table "fuckit-executor" "$MODEL_PROFILE")
+fi
+```
+
+Store resolved model per-plan for use in Task calls.
 </step>
 
 <step name="load_project_state">
@@ -55,38 +86,108 @@ Options:
 
 **If .planning/ doesn't exist:** Error - project not initialized.
 
-**Load planning config:**
+**Load all config values using reliable JSON parsing:**
 
 ```bash
-# Check if planning docs should be committed (default: true)
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+# Load multiple config values in one Node.js call (efficient)
+eval $(node -e "
+  const fs = require('fs');
+  try {
+    const c = JSON.parse(fs.readFileSync('.planning/config.json'));
+    console.log('COMMIT_PLANNING_DOCS=' + (c.planning?.commit_docs !== false));
+    console.log('PARALLELIZATION=' + (c.parallelization?.enabled !== false));
+    console.log('BRANCHING_STRATEGY=' + (c.git?.branching_strategy || 'none'));
+    console.log('PHASE_BRANCH_TEMPLATE=\"' + (c.git?.phase_branch_template || 'gsd/phase-{phase}-{slug}') + '\"');
+    console.log('MILESTONE_BRANCH_TEMPLATE=\"' + (c.git?.milestone_branch_template || 'gsd/{milestone}-{slug}') + '\"');
+  } catch {
+    console.log('COMMIT_PLANNING_DOCS=true');
+    console.log('PARALLELIZATION=true');
+    console.log('BRANCHING_STRATEGY=none');
+    console.log('PHASE_BRANCH_TEMPLATE=\"gsd/phase-{phase}-{slug}\"');
+    console.log('MILESTONE_BRANCH_TEMPLATE=\"gsd/{milestone}-{slug}\"');
+  }
+" 2>/dev/null)
+
 # Auto-detect gitignored (overrides config)
 git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
 ```
 
-Store `COMMIT_PLANNING_DOCS` for use in git operations.
-
-**Load parallelization config:**
-
-```bash
-# Check if parallelization is enabled (default: true)
-PARALLELIZATION=$(cat .planning/config.json 2>/dev/null | grep -o '"parallelization"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
-```
-
-Store `PARALLELIZATION` for use in wave execution step. When `false`, plans within a wave execute sequentially instead of in parallel.
-
-**Load git branching config:**
-
-```bash
-# Get branching strategy (default: none)
-BRANCHING_STRATEGY=$(cat .planning/config.json 2>/dev/null | grep -o '"branching_strategy"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' || echo "none")
-
-# Get templates
-PHASE_BRANCH_TEMPLATE=$(cat .planning/config.json 2>/dev/null | grep -o '"phase_branch_template"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' || echo "gsd/phase-{phase}-{slug}")
-MILESTONE_BRANCH_TEMPLATE=$(cat .planning/config.json 2>/dev/null | grep -o '"milestone_branch_template"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*:.*"\([^"]*\)"/\1/' || echo "gsd/{milestone}-{slug}")
-```
+Store values for use in subsequent steps:
+- `COMMIT_PLANNING_DOCS`: Whether to commit .planning/ files
+- `PARALLELIZATION`: Whether to run plans in parallel within waves
+- `BRANCHING_STRATEGY`: Branch strategy (none, phase, milestone)
+- `PHASE_BRANCH_TEMPLATE`: Template for phase branches
+- `MILESTONE_BRANCH_TEMPLATE`: Template for milestone branches
 
 Store `BRANCHING_STRATEGY` and templates for use in branch creation step.
+</step>
+
+<step name="validate_state">
+**Quick state validation before proceeding:**
+
+```bash
+# Check position matches reality
+CLAIMED_PLAN=$(grep -E "^Plan:" .planning/STATE.md 2>/dev/null | grep -oE "[0-9]+" | head -1 || echo "1")
+PHASE_DIR=$(ls -d .planning/phases/${PHASE_ARG}-* .planning/phases/0${PHASE_ARG}-* 2>/dev/null | head -1)
+ACTUAL_SUMMARIES=$(ls -1 "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+
+# Check for uncommitted changes
+UNCOMMITTED=$(git status --porcelain -- .planning/ 2>/dev/null | wc -l | tr -d ' ')
+```
+
+**Position drift check:**
+If `CLAIMED_PLAN > ACTUAL_SUMMARIES + 1`:
+```
+⚠ State Inconsistency Detected
+
+STATE.md claims Plan {CLAIMED_PLAN} but only {ACTUAL_SUMMARIES} plans are complete.
+
+Run /fuckit:repair-state to fix, or continue anyway?
+```
+
+Use AskUserQuestion:
+- "Repair first" - Exit and suggest repair command
+- "Continue anyway" - Proceed with actual state (may miss context)
+
+**Uncommitted changes check:**
+If `UNCOMMITTED > 0`:
+```
+⚠ Uncommitted Changes Detected
+
+Found {UNCOMMITTED} uncommitted changes in .planning/.
+This may indicate interrupted previous execution.
+
+Options:
+```
+
+Use AskUserQuestion:
+- "Commit and continue" - Commit changes as recovery, then proceed
+- "Discard and continue" - Reset changes, proceed fresh
+- "Abort" - Exit to investigate manually
+
+**If validation passes:** Continue silently to next step.
+
+**Check circuit breaker status:**
+
+```bash
+# Check for plans that have hit circuit breaker (3+ failures)
+TRIPPED_PLANS=$(grep -A10 "### Recent Failures" .planning/STATE.md | grep -E "^\| [0-9]" | awk '$3 >= 3 {print $1}')
+```
+
+If any plans in current phase have tripped the circuit breaker:
+```
+⚠ Circuit Breaker Active
+
+The following plans have failed 3+ times and are paused:
+{list of tripped plans with last errors}
+
+Options:
+- Reset failures: /fuckit:repair-state (clears failure counts)
+- Skip these plans: Continue with --skip-tripped flag
+- Investigate: Review errors before proceeding
+```
+
+Use AskUserQuestion to determine how to proceed.
 </step>
 
 <step name="handle_branching">
@@ -359,13 +460,56 @@ Execute each wave in sequence. Autonomous plans within a wave run in parallel **
    - Bad: "Wave 2 complete. Proceeding to Wave 3."
    - Good: "Terrain system complete — 3 biome types, height-based texturing, physics collision meshes. Vehicle physics (Wave 3) can now reference ground surfaces."
 
-4. **Handle failures:**
+4. **Handle failures with circuit breaker:**
 
    If any agent in wave fails:
+
+   **Record failure in STATE.md:**
+   ```bash
+   # Check current failure count for this plan
+   FAIL_COUNT=$(grep -A5 "### Recent Failures" .planning/STATE.md | grep "$PLAN_ID" | awk '{print $3}' || echo "0")
+   NEW_COUNT=$((FAIL_COUNT + 1))
+
+   # Extract error message (first line of failure output)
+   ERROR_MSG=$(echo "$AGENT_OUTPUT" | grep -i "error\|failed\|exception" | head -1 | cut -c1-50)
+
+   # Update or add failure entry
+   TODAY=$(date +%Y-%m-%d)
+   ```
+
+   Update STATE.md Recent Failures table with plan ID, count, error, and date.
+
+   **Circuit breaker check (3 strikes):**
+
+   If `NEW_COUNT >= 3`:
+   ```
+   ⚠ Circuit Breaker Triggered
+
+   Plan {PLAN_ID} has failed {NEW_COUNT} consecutive times.
+
+   Recent errors:
+   - {error 1}
+   - {error 2}
+   - {error 3}
+
+   Automatic retry disabled. Options:
+   ```
+
+   Use AskUserQuestion:
+   - "Investigate" - Show detailed failure info, pause execution
+   - "Skip this plan" - Mark as skipped, continue with remaining
+   - "Reset and retry" - Clear failure count, try one more time
+   - "Abort phase" - Stop execution entirely
+
+   **If `NEW_COUNT < 3`:**
    - Report which plan failed and why
-   - Ask user: "Continue with remaining waves?" or "Stop execution?"
+   - Ask user: "Retry this plan?", "Continue with remaining waves?", or "Stop execution?"
+   - If retry: spawn fresh agent for same plan
    - If continue: proceed to next wave (dependent plans may also fail)
    - If stop: exit with partial completion report
+
+   **Clear failures on success:**
+   When a plan succeeds, remove its entry from Recent Failures table.
 
 5. **Execute checkpoint plans between waves:**
 
