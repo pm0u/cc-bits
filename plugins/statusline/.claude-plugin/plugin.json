@@ -1,0 +1,13 @@
+{
+  "name": "statusline",
+  "description": "Enhanced statusline for Claude Code showing model, directory, context usage, and API rate limits",
+  "version": "1.0.0",
+  "author": {
+    "name": "Paul Mourer",
+    "url": "https://github.com/pm0u"
+  },
+  "homepage": "https://github.com/pm0u/cc-bits",
+  "repository": "https://github.com/pm0u/cc-bits",
+  "license": "MIT",
+  "keywords": ["statusline", "context", "usage", "rate-limits"]
+}

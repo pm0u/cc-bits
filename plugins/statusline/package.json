@@ -1,0 +1,15 @@
+{
+  "name": "statusline",
+  "version": "1.0.0",
+  "description": "Enhanced statusline for Claude Code showing model, directory, context usage, and API rate limits",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "statusline",
+    "context",
+    "usage",
+    "rate-limits"
+  ],
+  "author": "Paul Mourer",
+  "license": "MIT"
+}

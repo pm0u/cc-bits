@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Enhanced FUCKIT Statusline
+// Enhanced Claude Code Statusline
 // Shows: model | directory | context usage | session usage | weekly usage
 
 const fs = require('fs');
@@ -8,7 +8,7 @@ const os = require('os');
 const https = require('https');
 
 // Cache file for usage data
-const CACHE_FILE = '/tmp/fuckit-statusline-cache.json';
+const CACHE_FILE = '/tmp/cc-statusline-cache.json';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // Format directory to show up to 2 folders deep
@@ -36,16 +36,6 @@ function formatDuration(ms) {
   return `${minutes}m`;
 }
 
-// Format absolute time in local timezone
-function formatAbsoluteTime(isoString) {
-  const date = new Date(isoString);
-  return date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
-}
-
 // Format reset time display (relative only)
 function formatResetTime(isoString) {
   const resetDate = new Date(isoString);
@@ -71,7 +61,7 @@ function createProgressBar(percentage, label) {
   } else if (pct < 95) {
     color = '\x1b[38;5;208m'; // Orange
   } else {
-    color = '\x1b[31m'; // Red (no blinking)
+    color = '\x1b[31m'; // Red
   }
 
   return `${label} ${color}${bar} ${pct}%\x1b[0m`;
