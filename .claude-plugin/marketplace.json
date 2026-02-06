@@ -13,6 +13,11 @@
       "name": "fuckit",
       "source": "./plugins/fuckit",
       "description": "FUCKIT - A meta-prompting, context engineering and spec-driven development system for Claude Code"
+    },
+    {
+      "name": "huckit",
+      "source": "./plugins/huckit",
+      "description": "Core skills library for Claude Code: TDD, debugging, collaboration patterns, and proven techniques"
     }
   ]
 }
