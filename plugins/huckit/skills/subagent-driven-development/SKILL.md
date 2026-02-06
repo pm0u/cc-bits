@@ -82,6 +82,10 @@ digraph process {
 }
 ```
 
+## Git Discipline
+
+Each task gets one atomic commit after passing both reviews. Commit message format: `task N/total: description of what was done`. This makes the git log a traceable history of plan execution and enables clean rollback per task.
+
 ## Prompt Templates
 
 - `./implementer-prompt.md` - Dispatch implementer subagent
@@ -227,6 +231,7 @@ Done!
 - Don't skip the re-review
 
 **If subagent fails task:**
+- `git reset` uncommitted changes from the failed task — previous task commits are preserved
 - Dispatch fix subagent with specific instructions
 - Don't try to fix manually (context pollution)
 

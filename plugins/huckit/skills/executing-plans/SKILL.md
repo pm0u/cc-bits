@@ -30,7 +30,8 @@ For each task:
 2. Follow each step exactly (plan has bite-sized steps)
 3. Run verifications as specified
 4. Validate against SPEC.md — does the result match the spec's acceptance criteria for this requirement?
-5. Mark as completed
+5. Commit the task's changes: `task N/total: description of what was done`
+6. Mark as completed
 
 ### Step 3: Report
 When batch complete:
@@ -60,6 +61,11 @@ After all tasks complete and verified:
 - Verification fails repeatedly
 
 **Ask for clarification rather than guessing.**
+
+**If a task fails mid-batch:**
+1. `git reset` uncommitted changes from the failed task — previous task commits are preserved since each task is committed individually
+2. Report which tasks in the batch succeeded (committed) and which failed
+3. Ask for guidance before continuing
 
 ## When the Plan is Wrong
 

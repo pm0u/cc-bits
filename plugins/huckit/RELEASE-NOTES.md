@@ -1,5 +1,17 @@
 # Huckit Release Notes
 
+## v1.2.0 (2026-02-06)
+
+### Improvements
+
+**Git discipline for execution skills**
+
+Both `executing-plans` and `subagent-driven-development` now include explicit commit-per-task rules with a standard message format (`task N/total: description`), plus rollback guidance when a task fails mid-execution (`git reset` uncommitted changes, previous task commits preserved).
+
+**Proportional testing rigor for skill edits**
+
+The `writing-skills` Iron Law now scales testing requirements to the type of edit. Full TDD remains mandatory for new skills and new behavioral rules, but additive clarifications and mechanical edits no longer require pressure-testing — a review with your human partner is sufficient.
+
 ## v4.2.0 (2026-02-05)
 
 ### Breaking Changes

@@ -377,18 +377,22 @@ When: Reference material too large for inline
 NO SKILL WITHOUT A FAILING TEST FIRST
 ```
 
-This applies to NEW skills AND EDITS to existing skills.
+This applies to NEW skills. For edits to existing skills, scale rigor proportionally:
+
+| Edit Type | Testing Required |
+|-----------|-----------------|
+| New skill | Full TDD (pressure scenarios → baseline → verify) |
+| New behavioral rule in existing skill | Full TDD for the new rule |
+| Making implicit behavior explicit | Review with human partner |
+| Additive guidance (commit formats, checklists) | Review with human partner |
+| Mechanical (typos, formatting, rewording) | None |
+
+**The test:** Would an agent rationalize around this change? If yes → full TDD. If it's straightforward guidance that doesn't need pressure-testing → review is sufficient.
 
 Write skill before testing? Delete it. Start over.
-Edit skill without testing? Same violation.
-
-**No exceptions:**
-- Not for "simple additions"
-- Not for "just adding a section"
-- Not for "documentation updates"
-- Don't keep untested changes as "reference"
-- Don't "adapt" while running tests
-- Delete means delete
+Don't keep untested changes as "reference".
+Don't "adapt" while running tests.
+Delete means delete.
 
 **REQUIRED BACKGROUND:** The huckit:test-driven-development skill explains why this matters. Same principles apply to documentation.
 
