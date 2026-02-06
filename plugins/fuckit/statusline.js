@@ -185,11 +185,12 @@ async function main() {
     // Get usage data
     const usage = await getUsageData();
 
-    // Format output parts
-    const parts = [];
+    // Format output parts - Line 1: model, directory, context
+    const line1Parts = [];
+    const line2Parts = [];
 
     // Model and directory
-    parts.push(`\x1b[2m${model}\x1b[0m │ \x1b[2m${formatDir(dir)}\x1b[0m`);
+    line1Parts.push(`\x1b[2m${model}\x1b[0m │ \x1b[2m${formatDir(dir)}\x1b[0m`);
 
     // Context window
     if (remaining != null) {
@@ -211,26 +212,33 @@ async function main() {
         color = '\x1b[31m';
       }
 
-      parts.push(`ctx ${color}${bar} ${used}%\x1b[0m`);
+      line1Parts.push(`ctx ${color}${bar} ${used}%\x1b[0m`);
     }
 
-    // Usage limits (if available)
+    // Usage limits (if available) - Line 2
     if (usage && usage.five_hour) {
       const sessionPct = usage.five_hour.utilization || 0;
       const sessionBar = createProgressBar(sessionPct, '5h');
       const sessionReset = formatResetTime(usage.five_hour.resets_at);
-      parts.push(`${sessionBar} ${sessionReset}`);
+      line2Parts.push(`${sessionBar} ${sessionReset}`);
     }
 
     if (usage && usage.seven_day) {
       const weeklyPct = usage.seven_day.utilization || 0;
       const weeklyBar = createProgressBar(weeklyPct, '7d');
       const weeklyReset = formatResetTime(usage.seven_day.resets_at);
-      parts.push(`${weeklyBar} ${weeklyReset}`);
+      line2Parts.push(`${weeklyBar} ${weeklyReset}`);
     }
 
-    // Output single line
-    process.stdout.write(parts.join(' │ '));
+    // Output two lines
+    const lines = [];
+    if (line1Parts.length > 0) {
+      lines.push(line1Parts.join(' │ '));
+    }
+    if (line2Parts.length > 0) {
+      lines.push(line2Parts.join(' │ '));
+    }
+    process.stdout.write(lines.join('\n'));
   } catch (e) {
     // Silent fail
   }
