@@ -11,13 +11,13 @@ const https = require('https');
 const CACHE_FILE = '/tmp/fuckit-statusline-cache.json';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-// Format directory to show up to 3 folders deep
+// Format directory to show up to 2 folders deep
 function formatDir(dir) {
   const parts = dir.split(path.sep).filter(Boolean);
-  if (parts.length <= 3) {
+  if (parts.length <= 2) {
     return dir.startsWith('/') ? '/' + parts.join('/') : parts.join('/');
   }
-  return '.../' + parts.slice(-3).join('/');
+  return '.../' + parts.slice(-2).join('/');
 }
 
 // Format time duration (ms to human readable)
