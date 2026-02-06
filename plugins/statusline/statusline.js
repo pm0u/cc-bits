@@ -174,15 +174,10 @@ async function main() {
 
     // Get usage data
     const usage = await getUsageData();
+    const hasUsageLimits = usage && (usage.five_hour || usage.seven_day);
 
-    // Format output parts - Line 1: model, directory
-    const line1Parts = [];
-    const line2Parts = [];
-
-    // Model and directory
-    line1Parts.push(`\x1b[2m${model}\x1b[0m │ \x1b[2m${formatDir(dir)}\x1b[0m`);
-
-    // Context window - Line 2
+    // Build context bar
+    let ctxBar = '';
     if (remaining != null) {
       const rem = Math.round(remaining);
       const rawUsed = Math.max(0, Math.min(100, 100 - rem));
@@ -202,32 +197,41 @@ async function main() {
         color = '\x1b[31m';
       }
 
-      line2Parts.push(`ctx ${color}${bar} ${used}%\x1b[0m`);
+      ctxBar = `ctx ${color}${bar} ${used}%\x1b[0m`;
     }
 
-    // Usage limits (if available) - Line 2
-    if (usage && usage.five_hour) {
-      const sessionPct = usage.five_hour.utilization || 0;
-      const sessionBar = createProgressBar(sessionPct, '5h');
-      const sessionReset = formatResetTime(usage.five_hour.resets_at);
-      line2Parts.push(`${sessionBar} ${sessionReset}`);
+    // Line 1: model, directory, and context (if no usage limits)
+    const line1Parts = [`\x1b[2m${model}\x1b[0m │ \x1b[2m${formatDir(dir)}\x1b[0m`];
+    if (ctxBar && !hasUsageLimits) {
+      line1Parts.push(ctxBar);
     }
 
-    if (usage && usage.seven_day) {
-      const weeklyPct = usage.seven_day.utilization || 0;
-      const weeklyBar = createProgressBar(weeklyPct, '7d');
-      const weeklyReset = formatResetTime(usage.seven_day.resets_at);
-      line2Parts.push(`${weeklyBar} ${weeklyReset}`);
-    }
+    const lines = [line1Parts.join(' │ ')];
 
-    // Output two lines
-    const lines = [];
-    if (line1Parts.length > 0) {
-      lines.push(line1Parts.join(' │ '));
-    }
-    if (line2Parts.length > 0) {
+    // Line 2: context + usage limits (only if usage limits exist)
+    if (hasUsageLimits) {
+      const line2Parts = [];
+      if (ctxBar) {
+        line2Parts.push(ctxBar);
+      }
+
+      if (usage.five_hour) {
+        const sessionPct = usage.five_hour.utilization || 0;
+        const sessionBar = createProgressBar(sessionPct, '5h');
+        const sessionReset = formatResetTime(usage.five_hour.resets_at);
+        line2Parts.push(`${sessionBar} ${sessionReset}`);
+      }
+
+      if (usage.seven_day) {
+        const weeklyPct = usage.seven_day.utilization || 0;
+        const weeklyBar = createProgressBar(weeklyPct, '7d');
+        const weeklyReset = formatResetTime(usage.seven_day.resets_at);
+        line2Parts.push(`${weeklyBar} ${weeklyReset}`);
+      }
+
       lines.push(line2Parts.join(' │ '));
     }
+
     process.stdout.write(lines.join('\n'));
   } catch (e) {
     // Silent fail
