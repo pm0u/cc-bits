@@ -1,5 +1,5 @@
 ---
-name: receiving-code-review
+name: huckit:receiving-code-review
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable
 ---
 

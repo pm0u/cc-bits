@@ -1,7 +1,7 @@
 {
   "name": "huckit",
   "description": "Core skills library for Claude Code: TDD, debugging, collaboration patterns, and proven techniques",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "Paul Mourer",
     "url": "https://github.com/pm0u"

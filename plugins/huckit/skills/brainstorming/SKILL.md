@@ -1,5 +1,5 @@
 ---
-name: brainstorming
+name: huckit:brainstorming
 description: Use when starting creative work - creating features, building components, adding functionality, or modifying behavior - before any implementation begins
 ---
 
