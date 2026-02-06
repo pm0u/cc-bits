@@ -185,14 +185,14 @@ async function main() {
     // Get usage data
     const usage = await getUsageData();
 
-    // Format output parts - Line 1: model, directory, context
+    // Format output parts - Line 1: model, directory
     const line1Parts = [];
     const line2Parts = [];
 
     // Model and directory
     line1Parts.push(`\x1b[2m${model}\x1b[0m │ \x1b[2m${formatDir(dir)}\x1b[0m`);
 
-    // Context window
+    // Context window - Line 2
     if (remaining != null) {
       const rem = Math.round(remaining);
       const rawUsed = Math.max(0, Math.min(100, 100 - rem));
@@ -212,7 +212,7 @@ async function main() {
         color = '\x1b[31m';
       }
 
-      line1Parts.push(`ctx ${color}${bar} ${used}%\x1b[0m`);
+      line2Parts.push(`ctx ${color}${bar} ${used}%\x1b[0m`);
     }
 
     // Usage limits (if available) - Line 2
