@@ -1,6 +1,6 @@
 # Assessment Workflow
 
-Determines how much process a task needs. Runs in main context, targets < 5 seconds.
+Determines scope and weight for a task. Runs in main context, targets < 10 seconds.
 
 ## Reference
 
@@ -11,6 +11,28 @@ Determines how much process a task needs. Runs in main context, targets < 5 seco
 - `task`: The user's request (string)
 
 ## Process
+
+<step name="layer-0-scope">
+
+### Layer 0: Scope Check
+
+Determine if this task requires a single spec or a spec tree.
+
+Check for multi-spec signals:
+
+| Signal | Example |
+|--------|---------|
+| Multiple pages/views/screens | "build a site with index, detail, and settings pages" |
+| Multiple independent features | "add auth and a dashboard" |
+| "Build an app/site/system" | Whole-application language |
+| Multiple distinct data domains | >2 unrelated entity types |
+| Reference architecture with >3 layers | "auth + GraphQL + components + pages + middleware" |
+
+If ANY signal present → `scope: multi`. Proceed to spec tree proposal (handled in go skill).
+
+If none → `scope: single`. Continue to Layer 1.
+
+</step>
 
 <step name="layer-1-intent">
 
@@ -99,10 +121,13 @@ Don't block — just surface it. If the user says continue, proceed.
 ## Output
 
 ```markdown
+**Scope**: {single | multi}
 **Assessment**: {light | full}
 **Reason**: {one-line explanation}
 **Relevant specs**: {list of paths, or "none"}
 **Spec-on-touch**: {true | false}
 ```
 
-Proceed to: @~/.claude/plugins/marketplaces/sendit/sendit/workflows/preflight.md
+Proceed to:
+- If `scope: multi` → spec tree proposal in go skill
+- If `scope: single` → @~/.claude/plugins/marketplaces/sendit/sendit/workflows/preflight.md

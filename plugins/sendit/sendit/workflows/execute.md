@@ -1,13 +1,17 @@
 # Execution Workflow
 
-Implements the plan. Light mode: inline execution. Full mode: executor agent per task.
+Implements the plan. Always uses executor agents — the orchestrator never writes code itself.
 
 ## Input
 
 - `weight`: light | full
-- `tasks`: List of tasks (inline list or PLAN.md path)
+- `tasks`: List of tasks from PLAN.md
 - `spec_path`: Path to relevant SPEC.md
 - `test_files`: List of test files (may be empty)
+
+## Core Principle
+
+The orchestrator spawns executor agents, monitors their results, and handles failures. It does NOT implement tasks directly, regardless of weight.
 
 ## Progress Tracking
 
@@ -17,68 +21,86 @@ Before executing the first task, write `specs/{feature}/PROGRESS.md` with the ta
 
 ## Process
 
-### Light Execution
+<step name="execute">
 
-<step name="light-execute">
+### Read the Plan
 
-Execute tasks inline in main context. No agents spawned.
+Read PLAN.md and extract the task list. For each task, note:
+- Task description
+- Files to modify
+- Verification criteria
+- Spec reference
 
-For each task in the numbered list:
+### Execute Tasks
 
-1. Make the changes described
-2. If tests exist for this change, run them:
-   ```bash
-   npm test 2>&1 || true
-   ```
-3. If no tests and this is a testable change, write a quick test first (light TDD)
-4. Commit the change:
-   ```bash
-   git add {specific files}
-   git commit -m "{descriptive message}"
-   ```
-5. Update PROGRESS.md (mark task done, record commit)
-6. Move to next task
+For each task in the plan, spawn an executor agent:
 
-If a task fails:
-- Debug (max 2 attempts)
-- If still failing, ask user for guidance before proceeding
+```
+Task(subagent_type="executor", prompt="
+  TASK: {task description from plan}
+  SPEC: {spec_path}
+  PLAN: specs/{feature}/PLAN.md
+  FILES: {files to modify}
+  VERIFY: {verification criteria}
+  WEIGHT: {light | full}
 
-</step>
+  Implement this task, verify it works, and commit.
+")
+```
 
-### Full Execution
+**Light mode**: Executor gets minimal context (task + files). Verification is lighter.
 
-<step name="full-execute">
+**Full mode**: Executor gets full context (task + spec + plan + test files). Each task is verified against tests.
 
-Spawn executor agent for each task or group of related tasks.
+### Handle Executor Response
 
-1. Read the PLAN.md
-2. For each task (or task group):
-   ```
-   Task(subagent_type="executor", prompt="
-     TASK: {task description from plan}
-     SPEC: {spec_path}
-     PLAN: specs/{feature}/PLAN.md
-     FILES: {files to modify}
-     VERIFY: {verification criteria}
+After each executor completes:
 
-     Implement this task, verify it works, and commit.
-   ")
-   ```
+**If `status: done`**:
+- Update PROGRESS.md (mark task done, record commit)
+- Proceed to next task
 
-3. After each task completion:
-   - Check the executor's result
-   - If failed, decide:
-     - Retry with modified instructions (1 retry max)
-     - Skip and flag for user
-     - Escalate to user
-   - If succeeded, update PROGRESS.md and proceed to next task
+**If `status: failed`**:
+- Decide:
+  - Retry with modified instructions (1 retry max)
+  - Skip and flag for user
+  - Escalate to user immediately
+- If retry, spawn a new executor with the failure context included
 
-4. After all tasks complete:
-   - Run full test suite one more time
-   ```bash
-   npm test 2>&1 || python -m pytest 2>&1 || go test ./... 2>&1
-   ```
-   - If any failures, investigate and fix
+**If `status: KICKBACK`**:
+- Stop execution immediately
+- Report to user: "Executor flagged complexity issue on task {N}: {reason}"
+- Route by kickback signal (see gates.md):
+  - `scope_creep` → Upgrade remaining stages to full, possibly split spec
+  - `missing_context` → Return to spec engagement to fill gaps
+  - `needs_research` → Spawn researcher, then re-plan remaining tasks
+- Do NOT continue executing subsequent tasks — the plan may need revision
+
+**If `status: blocked`**:
+- Report the blocker to user
+- Ask how to proceed
+
+### Parallelization
+
+Tasks are executed sequentially by default (they often depend on prior tasks). The orchestrator MAY run independent tasks in parallel if:
+- The plan explicitly marks tasks as independent
+- Tasks modify completely different files
+- Both conditions are true
+
+When parallelizing, spawn multiple executor agents in a single message:
+```
+Task(subagent_type="executor", prompt="TASK: {task A}...")
+Task(subagent_type="executor", prompt="TASK: {task B}...")
+```
+
+### Final Verification
+
+After all tasks complete, run the full test suite:
+```bash
+npm test 2>&1 || python -m pytest 2>&1 || go test ./... 2>&1
+```
+
+If any failures, investigate and fix (spawn executor for the fix, max 3 fix rounds).
 
 </step>
 

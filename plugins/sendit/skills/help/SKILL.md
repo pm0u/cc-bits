@@ -11,7 +11,9 @@ allowed-tools:
 
 Spec-Driven Development. Specs are the source of truth — not plans, not process artifacts, not `.planning/` directories. The spec tree IS your project's infrastructure.
 
-**Core concept**: The Spec ↔ Tests ↔ Code triangle. Every feature maintains this three-way contract. The spec defines WHAT, tests verify it, code implements it.
+**Core concept**: The Spec - Tests - Code triangle. Every feature maintains this three-way contract. The spec defines WHAT, tests verify it, code implements it.
+
+**Core principle**: The orchestrator never implements. It assesses, routes, spawns agents, and handles responses. All code is written by specialized agents.
 
 ## Commands
 
@@ -31,54 +33,59 @@ Spec-Driven Development. Specs are the source of truth — not plans, not proces
 
 ```
 /sendit:go "do the thing"
-        │
-        ▼
-    ┌─────────┐
-    │ ASSESS  │  Parse intent → check specs → determine weight
-    └────┬────┘
-         │
-    ┌────▼─────┐
-    │PREFLIGHT │  Spec enforcer checks constraints before work begins
-    └────┬─────┘
-         │
-    ┌────▼──────────┐
-    │SPEC ENGAGEMENT│  (if needed) Brainstorm → update spec → ready gate
-    └────┬──────────┘
-         │
-    ┌────▼───────┐
-    │ TEST WRITE │  (if spec changed) Spec → failing tests
-    └────┬───────┘
-         │
-    ┌────▼──────┐
-    │ RESEARCH  │  (if unfamiliar tech) Investigate before planning
-    └────┬──────┘
-         │
-    ┌────▼────┐
-    │  PLAN   │  Light: inline tasks. Full: planner agent + checker
-    └────┬────┘
-         │
-    ┌────▼─────┐
-    │ EXECUTE  │  Implement tasks, make tests pass, commit per task
-    └────┬─────┘
-         │
-    ┌────▼──────────┐
-    │  POST-FLIGHT  │  Triangle validation → drift report → INDEX update
-    └───────────────┘
+        |
+        v
+    +----------+
+    |  SCOPE   |  Is this one spec or a spec tree?
+    +----+-----+
+         |
+    +----v-----+
+    |  ASSESS  |  Parse intent -> check specs -> determine weight
+    +----+-----+
+         |
+    +----v------+
+    | PREFLIGHT |  Spec-enforcer agent checks constraints
+    +----+------+
+         |
+    +----v-----------+
+    |SPEC ENGAGEMENT |  (if needed) Questioning -> update spec -> ready gate
+    +----+-----------+
+         |
+    +----v--------+
+    | TEST WRITE  |  (if spec changed) Spec -> failing tests (agent)
+    +----+--------+
+         |
+    +----v-------+
+    | RESEARCH   |  (if unfamiliar tech) Researcher agent investigates
+    +----+-------+
+         |
+    +----v----+
+    |  PLAN   |  Planner agent + checker (full mode)
+    +----+----+
+         |            +----------+
+    +----v-----+      | KICKBACK |  Agent flags complexity
+    | EXECUTE  | <--- | -> route |  -> split spec / re-engage / research
+    +----+-----+      +----------+
+         |
+    +----v-----------+
+    |  POST-FLIGHT   |  Triangle validation -> drift report -> INDEX update
+    +----------------+
 ```
 
 ## Light vs Full
 
-Sendit operates on a continuous spectrum, not discrete modes.
+Sendit operates on a continuous spectrum. Both use agents — the difference is which stages run and how thorough each agent's task is.
 
 | Aspect | Light | Full |
 |--------|-------|------|
+| Scope check | Always | Always |
 | Assessment | Parse intent + quick spec check | + scope analysis |
-| Pre-flight | Inline constraint check | Spec-enforcer agent |
-| Spec work | Skip (spec is clean) | Brainstorm → ready gate |
-| Tests | Executor handles | Separate test-writer agent |
+| Pre-flight | Spec-enforcer (quick check) | Spec-enforcer (thorough analysis) |
+| Spec work | Skip (spec is clean) | Questioning + ready gate |
+| Tests | Test-writer (basic coverage) | Test-writer (all acceptance criteria) |
 | Research | Skip | Researcher agent (if unfamiliar tech) |
-| Planning | 1-5 tasks inline | Planner agent + plan-checker |
-| Execution | Inline, commit per task | Executor agent per task |
+| Planning | Planner agent (1-5 tasks) | Planner agent + plan-checker (2-8 tasks) |
+| Execution | Executor agent per task | Executor agent per task (fuller context) |
 | Post-flight | Run tests, confirm | Triangle validation + drift report |
 
 **Default is light.** Sendit upgrades to full only when:
@@ -86,18 +93,25 @@ Sendit operates on a continuous spectrum, not discrete modes.
 - Spec has OPEN items requiring resolution
 - User explicitly requests it
 - Acceptance criteria are missing or incomplete
+- Agent sends a KICKBACK
 
 ## Key Concepts
 
 **Spec-on-touch**: No upfront spec work needed. Specs get created when you first work on a feature.
 
+**Scope check**: Large tasks (multiple pages, full apps) are detected and split into a spec tree before any work begins.
+
+**Kickback protocol**: Agents assess complexity early. If a task exceeds their scope (>8 tasks, >5 files per task, missing context), they return a KICKBACK. The orchestrator routes accordingly: split spec, re-engage on spec, or research first.
+
 **Ready gate**: A spec is "ready" when it has no OPEN items and all acceptance criteria are present. The ready gate blocks full-mode execution until the spec passes.
 
-**Triangle validation**: Post-flight check that Spec ↔ Tests ↔ Code are all consistent. Catches drift.
+**Questioning**: When creating new specs for complex features, sendit identifies fuzzy areas and runs a targeted Q&A with concrete options — not a generic interview.
+
+**Triangle validation**: Post-flight check that Spec - Tests - Code are all consistent. Catches drift.
 
 **Drift**: When code changes without spec updates (or vice versa). Flagged by post-flight, resolved by updating the lagging artifact.
 
-**Spec tree**: The `specs/` directory. Grows organically. No upfront planning — features get spec'd as they're worked on.
+**Spec tree**: The `specs/` directory. Grows organically. Large features split into parent + child specs.
 
 **Global spec**: Optional `specs/GLOBAL.md` for project-wide constraints (accessibility, performance, conventions). Always checked during preflight regardless of which feature is being worked on.
 
@@ -109,5 +123,6 @@ Sendit operates on a continuous spectrum, not discrete modes.
 - Global constraints in `specs/GLOBAL.md`
 - Index at `specs/INDEX.md`
 - Plans (when needed) live alongside specs in `specs/<feature>/PLAN.md`
+- Research in `specs/<feature>/RESEARCH.md` (when researcher runs)
 - Progress tracking in `specs/<feature>/PROGRESS.md` (temporary, deleted on completion)
 - Drift reports in `specs/<feature>/DRIFT.md`

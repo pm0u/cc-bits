@@ -16,7 +16,45 @@ You receive:
 - A list of failing test files (if test-writer ran)
 - The project's codebase (to explore)
 
+## Early Complexity Check
+
+**Before creating a plan**, assess the spec's complexity:
+
+1. Read the SPEC.md
+2. Count acceptance criteria
+3. Estimate the number of files that will need to be created or modified
+4. Identify how many distinct concerns the spec covers
+
+Check these signals:
+
+| Signal | Threshold | Action |
+|--------|-----------|--------|
+| Acceptance criteria | >10 spanning multiple concerns | KICKBACK: `needs_split` |
+| Estimated tasks | >8 needed to cover all requirements | KICKBACK: `too_many_tasks` |
+| Distinct concerns | >3 unrelated domains in one spec | KICKBACK: `needs_split` |
+| Missing requirements | Spec lacks detail for key areas | KICKBACK: `spec_incomplete` |
+| Unfamiliar tech | Spec references libs/APIs not in codebase and no RESEARCH.md provided | KICKBACK: `needs_research` |
+
+If ANY signal triggers, **stop and return a KICKBACK**. Do NOT create a plan that will be too large or cover too many concerns.
+
+### KICKBACK Response
+
+```json
+{
+  "status": "KICKBACK",
+  "reason": "description of why this spec needs adjustment",
+  "signal": "too_many_tasks | needs_split | spec_incomplete | needs_research",
+  "details": "specific observations (criteria count, concern list, estimated task count)",
+  "recommendation": "what the orchestrator should do",
+  "suggested_split": ["child-spec-1: description", "child-spec-2: description"]
+}
+```
+
+For `needs_split`, include `suggested_split` — propose how the spec should be broken down. This helps the orchestrator present a concrete proposal to the user.
+
 ## Process
+
+Only proceed here if the early complexity check passes.
 
 <step name="understand-context">
 
@@ -94,6 +132,15 @@ Write `specs/{feature}/PLAN.md` with:
 
 </step>
 
+### 3. Final Validation
+
+Before returning the plan, verify:
+
+1. **Task count is 2-8.** If you ended up with >8 tasks, this spec needs splitting. Return a KICKBACK with `too_many_tasks` and a `suggested_split`.
+2. **Every acceptance criterion is covered.** Each criterion maps to at least one task.
+3. **Tasks are atomic.** Each task can be implemented and committed independently.
+4. **No task touches >5 files.** If one does, break it into smaller tasks or KICKBACK.
+
 ## Rules
 
 1. **Plans reference the spec** — every task traces back to a requirement or criterion
@@ -102,7 +149,8 @@ Write `specs/{feature}/PLAN.md` with:
 4. **Minimal changes** — only change what's needed to meet the spec
 5. **Follow existing patterns** — don't introduce new architectures
 6. **Order matters** — tasks should build on each other logically
-7. **2-8 tasks** — if more than 8, the spec should be split
+7. **2-8 tasks max** — if more than 8, the spec MUST be split. Return KICKBACK.
+8. **KICKBACK early** — if the spec is too large, return KICKBACK before creating a bad plan
 
 ## Output
 
@@ -110,6 +158,7 @@ Return to the orchestrator:
 
 ```json
 {
+  "status": "done | KICKBACK",
   "plan_path": "specs/{feature}/PLAN.md",
   "task_count": N,
   "estimated_files": ["files that will be modified"],

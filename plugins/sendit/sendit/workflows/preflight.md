@@ -1,6 +1,6 @@
 # Pre-flight Workflow
 
-Checks for conflicts between the task and existing specs before work begins.
+Checks for conflicts between the task and existing specs before work begins. Always spawns the spec-enforcer agent — the orchestrator does not do preflight inline.
 
 ## Reference
 
@@ -14,55 +14,47 @@ Checks for conflicts between the task and existing specs before work begins.
 
 ## Process
 
-### Light Pre-flight
+<step name="preflight">
 
-Runs inline in main context. Fast and minimal.
+### Pre-flight Check
 
-<step name="light-preflight">
+If no relevant specs → skip pre-flight entirely, proceed to spec engagement or planning.
 
-1. If no relevant specs → skip pre-flight entirely, proceed to planning
-2. For each relevant spec:
-   a. Read the spec
-   b. Quick scan for obvious conflicts:
-      - Does the task contradict a "Won't Have" item?
-      - Does the task conflict with a design decision?
-      - Does the task break an acceptance criterion?
-3. If conflicts found:
-   - Report to user: "This conflicts with {spec}: {reason}"
-   - Offer: resolve conflict (upgrade to full) or proceed anyway
-4. If clean → proceed
+Otherwise, spawn the spec-enforcer agent:
 
-**Output**: 1-2 sentences confirming no conflicts, or describing the conflict.
+**Light mode**: Quick check prompt:
+```
+Task(subagent_type="spec-enforcer", prompt="
+  MODE: preflight-light
+  TASK: {task description}
+  SPECS: {list of spec paths}
+  Quick check for obvious conflicts with existing specs. Return 1-2 sentences.
+")
+```
 
-</step>
+**Full mode**: Thorough analysis:
+```
+Task(subagent_type="spec-enforcer", prompt="
+  MODE: preflight
+  TASK: {task description}
+  SPECS: {list of spec paths}
+  Read each spec and check for conflicts with the proposed task.
+  Check for: contradictions with Won't Have items, design decision conflicts,
+  acceptance criteria violations, OPEN items, missing criteria.
+  Return a structured preflight report.
+")
+```
 
-### Full Pre-flight
+### Process the Response
 
-Spawns the spec-enforcer agent for thorough analysis.
-
-<step name="full-preflight">
-
-1. Spawn spec-enforcer agent in preflight mode:
-   ```
-   Task(subagent_type="spec-enforcer", prompt="
-     MODE: preflight
-     TASK: {task description}
-     SPECS: {list of spec paths}
-
-     Read each spec and check for conflicts with the proposed task.
-     Return a structured preflight report.
-   ")
-   ```
-
-2. Process the report:
-   - **CLEAR**: No conflicts. Proceed to spec engagement or planning.
-   - **CONFLICT**: Hard conflict found.
-     - Show the conflict to the user
-     - Must resolve before proceeding (spec engagement required)
-     - Upgrade to full if not already
-   - **NEEDS-SPEC-UPDATE**: Spec is outdated or incomplete.
-     - Flag for spec engagement stage
-     - Can proceed with caveat
+- **CLEAR**: No conflicts. Proceed to spec engagement or planning.
+- **CONFLICT**: Hard conflict found.
+  - Show the conflict to the user
+  - Must resolve before proceeding (spec engagement required)
+  - Upgrade to full if not already
+- **NEEDS-SPEC-UPDATE**: Spec is outdated or incomplete.
+  - Flag for spec engagement stage
+  - Can proceed with caveat
 
 </step>
 

@@ -1,10 +1,11 @@
 # Planning Workflow
 
-Creates the implementation plan. Light mode: inline tasks. Full mode: planner agent + plan-checker.
+Creates the implementation plan. Always uses the planner agent — the orchestrator never creates plans itself.
 
 ## Reference
 
 @~/.claude/plugins/marketplaces/sendit/sendit/templates/plan.md
+@~/.claude/plugins/marketplaces/sendit/sendit/references/gates.md
 
 ## Input
 
@@ -16,82 +17,96 @@ Creates the implementation plan. Light mode: inline tasks. Full mode: planner ag
 
 ## Process
 
-### Light Planning
+### Planning (all weights)
 
-<step name="light-plan">
+<step name="plan">
 
-Inline in main context. No agents spawned. No plan file created.
+The orchestrator MUST spawn the planner agent. Do NOT create plans inline.
 
-1. If spec exists, read it for requirements and criteria
-2. Enumerate 1-5 tasks as a numbered list:
-   ```
-   1. {File}: {change} — {why}
-   2. {File}: {change} — {why}
-   ...
-   ```
-3. Each task should be one commit-sized change
-4. Present to user for quick confirmation: "I'll make these changes:"
-5. On approval → proceed to execution
+**Light mode**: Spawn planner with lightweight prompt (fewer context files, target 1-5 tasks):
+```
+Task(subagent_type="planner", prompt="
+  SPEC: {spec_path}
+  TASK: {task description}
+  WEIGHT: light
 
-No plan file is written. Tasks live in the conversation context.
+  Create a focused implementation plan.
+  Target 1-5 tasks. Keep it concise.
+  Write to specs/{feature}/PLAN.md.
+  Return the plan path and task count.
+")
+```
 
-</step>
+**Full mode**: Spawn planner with full context:
+```
+Task(subagent_type="planner", prompt="
+  SPEC: {spec_path}
+  RESEARCH: {research_path (if available)}
+  TEST_FILES: {test_files}
+  TASK: {task description}
+  WEIGHT: full
 
-### Full Planning
+  Create a thorough implementation plan.
+  Read RESEARCH.md if provided for technical context.
+  Target 2-8 tasks. Every acceptance criterion must be covered.
+  Write to specs/{feature}/PLAN.md.
+  Return the plan path and task count.
+")
+```
 
-<step name="full-plan">
+### Handle Planner Response
 
-1. Spawn planner agent:
-   ```
-   Task(subagent_type="planner", prompt="
-     SPEC: {spec_path}
-     RESEARCH: {research_path (if available)}
-     TEST_FILES: {test_files}
-     TASK: {task description}
+**If planner returns `status: done`**:
+- In full mode: spawn plan-checker (see below)
+- In light mode: present plan summary to user for confirmation
 
-     Create an implementation plan.
-     Read RESEARCH.md if provided for technical context.
-     Write it to specs/{feature}/PLAN.md.
-     Return the plan path and task count.
-   ")
-   ```
+**If planner returns `status: KICKBACK`**:
+- Report to user: "The planner flagged this spec as too complex: {reason}"
+- Route by signal (see gates.md kickback protocol)
+- Do NOT retry the planner with the same input
 
-2. Spawn plan-checker agent:
-   ```
-   Task(subagent_type="plan-checker", prompt="
-     PLAN: specs/{feature}/PLAN.md
-     SPEC: {spec_path}
-     TEST_FILES: {test_files}
+### Plan Checking (full mode only)
 
-     Validate the plan covers all spec requirements and tests.
-     Return your verdict and any issues.
-   ")
-   ```
+```
+Task(subagent_type="plan-checker", prompt="
+  PLAN: specs/{feature}/PLAN.md
+  SPEC: {spec_path}
+  TEST_FILES: {test_files}
 
-3. Process checker verdict:
-   - **PASS**: Show plan summary to user, proceed to execution
-   - **REVISE**: Send issues back to planner for revision (max 1 revision)
-     ```
-     Task(subagent_type="planner", prompt="
-       SPEC: {spec_path}
-       EXISTING_PLAN: specs/{feature}/PLAN.md
-       CHECKER_FEEDBACK: {issues}
+  Validate the plan covers all spec requirements and tests.
+  Return your verdict and any issues.
+")
+```
 
-       Revise the plan to address these issues.
-       Update specs/{feature}/PLAN.md.
-     ")
-     ```
-   - After revision, re-check with plan-checker (max 2 total rounds)
-   - If still REVISE after 2 rounds, show issues to user and ask for guidance
+Process checker verdict:
+- **PASS**: Show plan summary to user, proceed to execution
+- **REVISE**: Send issues back to planner for revision (max 1 revision)
+  ```
+  Task(subagent_type="planner", prompt="
+    SPEC: {spec_path}
+    EXISTING_PLAN: specs/{feature}/PLAN.md
+    CHECKER_FEEDBACK: {issues}
 
-4. Show final plan summary to user for approval
+    Revise the plan to address these issues.
+    Update specs/{feature}/PLAN.md.
+  ")
+  ```
+- After revision, re-check with plan-checker (max 2 total rounds)
+- If still REVISE after 2 rounds, show issues to user and ask for guidance
+
+### User Approval
+
+Present final plan summary to user before executing. Include:
+- Task count
+- Files that will be created/modified
+- Any notes from the planner
 
 </step>
 
 ## Output
 
 ```markdown
-**Plan**: {inline | specs/{feature}/PLAN.md}
+**Plan**: specs/{feature}/PLAN.md
 **Tasks**: {N}
 **Checker verdict**: {pass | revise | N/A (light mode)}
 ```
