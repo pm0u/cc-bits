@@ -28,7 +28,25 @@ Single entry point. Assess the task, route through the appropriate weight, execu
 
 <process>
 
-<step name="assess" priority="first">
+<step name="resume-check" priority="first">
+
+### 0. Resume Check
+
+Before anything else, check for in-progress work:
+
+```bash
+find specs -name "PROGRESS.md" 2>/dev/null
+```
+
+If a PROGRESS.md exists:
+- Read it to get the feature name, current step, and task status
+- Tell the user: "Found in-progress work on **{feature}** (step: {current step}, {N}/{total} tasks done). Resume or start fresh?"
+- If resume → skip to the recorded current step, pick up from first pending task
+- If start fresh → delete the PROGRESS.md and proceed normally
+
+</step>
+
+<step name="assess">
 
 ### 1. Assessment
 
@@ -41,6 +59,8 @@ Run the assessment workflow inline (no agent — this must be fast).
 ```bash
 # Check if specs directory exists
 ls specs/INDEX.md 2>/dev/null
+# Check for global constraints
+ls specs/GLOBAL.md 2>/dev/null
 ```
 
 **Layer 2** (if needed): Check specs for relevant coverage.
@@ -49,7 +69,7 @@ ls specs/INDEX.md 2>/dev/null
 
 Produce:
 - `weight`: light | full
-- `relevant_specs`: list of spec paths (or empty)
+- `relevant_specs`: list of spec paths (always include `specs/GLOBAL.md` if it exists)
 - `spec_on_touch`: true | false
 
 **Branch check**: If on `main`/`master`, ask the user if they want to create a feature branch first. Don't block — just surface it.
@@ -136,18 +156,46 @@ Track: `test_files` = list of created test files
 
 </step>
 
+<step name="research">
+
+### 5. Research (conditional)
+
+@~/.claude/plugins/marketplaces/sendit/sendit/workflows/research.md
+
+**Skip when**: Light mode, or spec involves only familiar patterns/libraries already in the codebase.
+
+**Run when**: Full mode AND the spec references unfamiliar technology, external APIs, or patterns not present in the codebase. Also runs when the user explicitly asks to research first, or when a light→full upgrade was triggered by unexpected complexity.
+
+Quick check (inline, no agent):
+- Does the spec reference libraries not in package.json/pyproject.toml?
+- Are there patterns in the spec not found in the codebase?
+
+If research needed:
+```
+Task(subagent_type="researcher", prompt="
+  SPEC: {spec_path}
+  RESEARCH FOCUS: {what specifically needs investigation}
+  Investigate and write findings to specs/{feature}/RESEARCH.md.
+")
+```
+
+Track: `research_path` = `specs/{feature}/RESEARCH.md` or null
+
+</step>
+
 <step name="plan">
 
-### 5. Planning
+### 6. Planning
 
 @~/.claude/plugins/marketplaces/sendit/sendit/workflows/plan.md
 
 **Light**: Enumerate 1-5 tasks inline. Present to user for confirmation.
 
-**Full**: Spawn planner agent, then plan-checker:
+**Full**: Spawn planner agent (with research if available), then plan-checker:
 ```
 Task(subagent_type="planner", prompt="
   SPEC: {spec_path}
+  RESEARCH: {research_path (if research ran)}
   TEST_FILES: {test_files}
   TASK: {user's task}
   Create an implementation plan. Write to specs/{feature}/PLAN.md.
@@ -172,9 +220,11 @@ Present final plan summary to user for approval before executing.
 
 <step name="execute">
 
-### 6. Execution
+### 7. Execution
 
 @~/.claude/plugins/marketplaces/sendit/sendit/workflows/execute.md
+
+**Before starting**: Write `specs/{feature}/PROGRESS.md` with the task list and current step. Update it after each task completes. This enables session recovery if interrupted.
 
 **Light**: Execute tasks inline. Commit per logical change.
 
@@ -194,7 +244,7 @@ After all tasks: run full test suite.
 
 <step name="postflight">
 
-### 7. Post-flight
+### 8. Post-flight
 
 @~/.claude/plugins/marketplaces/sendit/sendit/workflows/postflight.md
 
@@ -211,6 +261,8 @@ Task(subagent_type="spec-enforcer", prompt="
 ```
 
 Update INDEX.md with current health.
+
+**Cleanup**: Delete `specs/{feature}/PROGRESS.md` on successful completion.
 
 **Report to user**: Summary of what was done, test results, any drift items.
 

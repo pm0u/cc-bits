@@ -29,6 +29,7 @@ Validates the work after execution. Light mode: quick test run. Full mode: trian
    - Failures → "Done, but {N} tests failing: {summary}. Want me to fix?"
 
 3. If `specs/INDEX.md` exists, update the relevant entry's health column
+4. Delete `specs/{feature}/PROGRESS.md` — flow is complete
 
 </step>
 
@@ -69,6 +70,8 @@ Validates the work after execution. Light mode: quick test run. Full mode: trian
 3. Save drift report (if drift found):
    - Write to `specs/{feature}/DRIFT.md`
    - This persists for future reference
+
+4. Delete `specs/{feature}/PROGRESS.md` — flow is complete
 
 </step>
 

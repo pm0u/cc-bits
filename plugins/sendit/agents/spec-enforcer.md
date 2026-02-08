@@ -25,13 +25,17 @@ Your job: Check whether the proposed work conflicts with or violates the spec.
 <step name="preflight-check">
 
 1. Read the SPEC.md file(s) provided
-2. Analyze the task against:
+2. Also read `specs/GLOBAL.md` if it exists — global constraints always apply
+3. Analyze the task against:
    - **Requirements**: Does the task contradict any Must Have / Won't Have items?
    - **Design decisions**: Does the task conflict with recorded decisions?
    - **Acceptance criteria**: Would the task break any existing criteria?
    - **Dependencies**: Does the task require specs that aren't ready?
-3. Check for implicit constraints:
-   - Accessibility requirements (WCAG if mentioned)
+4. Check global constraints (from `specs/GLOBAL.md` if present):
+   - Project-wide standards (accessibility, performance, conventions)
+   - Universal acceptance criteria
+5. Check for implicit constraints:
+   - Accessibility requirements (WCAG if mentioned in spec or GLOBAL)
    - Performance budgets (if spec'd)
    - API contracts (if spec'd)
 4. Report findings in structured format:

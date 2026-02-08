@@ -7,8 +7,11 @@ Everything in sendit revolves around specs. This document defines the canonical 
 ```
 specs/
 ├── INDEX.md                    # Root index — lists all specs, health summary
+├── GLOBAL.md                   # (optional) Project-wide constraints and standards
 ├── auth/
 │   ├── SPEC.md                 # Auth feature spec
+│   ├── PLAN.md                 # (created during full planning)
+│   ├── PROGRESS.md             # (created during execution, tracks flow state)
 │   └── INDEX.md                # (optional) Sub-index if auth has children
 ├── auth/oauth/
 │   └── SPEC.md                 # OAuth sub-spec (split from auth)
@@ -27,6 +30,90 @@ specs/
 - Specs can nest arbitrarily deep
 - INDEX.md files are optional per-directory but required at root
 - The spec tree grows organically — no upfront planning required
+
+## GLOBAL.md
+
+An optional file at `specs/GLOBAL.md` for project-wide constraints that apply to ALL features. Same format as SPEC.md but scoped differently:
+
+- No Status field (always active)
+- No OPEN section (constraints are always enforced)
+- Requirements are project-wide standards (accessibility, performance, conventions)
+- Acceptance criteria are universal invariants
+
+```markdown
+# Project Standards
+
+> Project-wide constraints that apply to all features.
+
+## Context
+
+{Why these standards exist. Link to style guides, compliance requirements, etc.}
+
+## Requirements
+
+### Must Have
+- [ ] All endpoints return JSON with consistent error format
+- [ ] WCAG AA compliance on all UI components
+- [ ] TypeScript strict mode — no `any` types
+
+### Won't Have
+- jQuery or other legacy DOM libraries
+
+## Acceptance Criteria
+
+- [ ] No accessibility violations reported by automated tooling
+- [ ] All API responses under 500ms at p95
+- [ ] Zero TypeScript errors with strict: true
+
+## Design Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| CSS approach | Tailwind | Team familiarity, consistency |
+```
+
+**Usage in the flow:**
+- The spec-enforcer ALWAYS checks GLOBAL.md during preflight (in addition to feature specs)
+- Postflight validates global constraints weren't violated
+- Assessment includes GLOBAL.md in `relevant_specs` when it exists
+
+## PROGRESS.md
+
+A lightweight state file at `specs/{feature}/PROGRESS.md` that tracks flow position for session recovery. Created at the start of execution, deleted on completion.
+
+```markdown
+# Progress: {Feature Name}
+
+**Started**: {timestamp}
+**Weight**: {light | full}
+**Current step**: {assess | preflight | spec-engagement | write-tests | plan | execute | postflight}
+
+## Assessment
+
+- Weight: {light | full}
+- Reason: {one-line}
+- Relevant specs: {paths}
+- Spec-on-touch: {true | false}
+
+## Tasks
+
+| # | Task | Status | Commit |
+|---|------|--------|--------|
+| 1 | {description} | {pending \| done \| failed} | {hash or —} |
+| 2 | {description} | {pending \| done \| failed} | {hash or —} |
+```
+
+**Lifecycle:**
+- Created when execution begins (after planning)
+- Updated after each task completes
+- Deleted on successful postflight completion
+- If present at session start → resume from recorded state
+
+**On resume:**
+1. `/sendit:go` detects `specs/{feature}/PROGRESS.md`
+2. Reads current step and task status
+3. Skips completed steps, resumes from current step
+4. For execution: skips completed tasks, resumes from first pending task
 
 ## SPEC.md Format
 

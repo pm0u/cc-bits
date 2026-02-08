@@ -34,7 +34,11 @@ If ambiguous → continue to Layer 2.
 ```bash
 # Check if specs exist at all
 ls specs/INDEX.md 2>/dev/null
+# Check for global constraints
+ls specs/GLOBAL.md 2>/dev/null
 ```
+
+If `specs/GLOBAL.md` exists, always include it in `relevant_specs`.
 
 If no specs directory exists:
 - This is a legacy/new codebase

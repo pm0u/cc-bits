@@ -49,7 +49,15 @@ Light ◄──────────────────────► F
 | Tests co-evolve with code | Tests written BEFORE code (from spec only) |
 | No spec isolation guarantee | Test-writer never sees the plan |
 
-### 5. Planning
+### 5. Research
+
+| Light | Full |
+|-------|------|
+| Skip entirely | Researcher agent investigates unfamiliar tech |
+| Planner does its own lightweight exploration | Produces RESEARCH.md consumed by planner |
+| N/A | Only triggers when spec involves unfamiliar territory |
+
+### 6. Planning
 
 | Light | Full |
 |-------|------|
@@ -58,7 +66,7 @@ Light ◄──────────────────────► F
 | No plan file created | Revision loop (max 2 rounds) |
 | Format: numbered list with file targets | Format: structured plan with verification criteria |
 
-### 6. Execution
+### 7. Execution
 
 | Light | Full |
 |-------|------|
@@ -67,7 +75,7 @@ Light ◄──────────────────────► F
 | Tests run at end | Tests run per task |
 | No explicit spec tracking | Each task references spec section |
 
-### 7. Post-flight
+### 8. Post-flight
 
 | Light | Full |
 |-------|------|
@@ -92,6 +100,6 @@ A single workflow can mix weights across stages. Common patterns:
 |--------|-------------|-----------------|----------|
 | Full light | 0 | 1-5 min | Bug fixes, small changes, well-spec'd features |
 | Mixed | 1-2 | 5-15 min | Medium features, partial spec coverage |
-| Full full | 4-5 | 15-30 min | New features, complex changes, no existing spec |
+| Full full | 5-6 | 15-30 min | New features, complex changes, no existing spec |
 
 The goal is to use the minimum process needed for quality. Sendit defaults to light and upgrades only when warranted.

@@ -49,6 +49,10 @@ Spec-Driven Development. Specs are the source of truth — not plans, not proces
     │ TEST WRITE │  (if spec changed) Spec → failing tests
     └────┬───────┘
          │
+    ┌────▼──────┐
+    │ RESEARCH  │  (if unfamiliar tech) Investigate before planning
+    └────┬──────┘
+         │
     ┌────▼────┐
     │  PLAN   │  Light: inline tasks. Full: planner agent + checker
     └────┬────┘
@@ -72,6 +76,7 @@ Sendit operates on a continuous spectrum, not discrete modes.
 | Pre-flight | Inline constraint check | Spec-enforcer agent |
 | Spec work | Skip (spec is clean) | Brainstorm → ready gate |
 | Tests | Executor handles | Separate test-writer agent |
+| Research | Skip | Researcher agent (if unfamiliar tech) |
 | Planning | 1-5 tasks inline | Planner agent + plan-checker |
 | Execution | Inline, commit per task | Executor agent per task |
 | Post-flight | Run tests, confirm | Triangle validation + drift report |
@@ -94,9 +99,15 @@ Sendit operates on a continuous spectrum, not discrete modes.
 
 **Spec tree**: The `specs/` directory. Grows organically. No upfront planning — features get spec'd as they're worked on.
 
+**Global spec**: Optional `specs/GLOBAL.md` for project-wide constraints (accessibility, performance, conventions). Always checked during preflight regardless of which feature is being worked on.
+
+**Resume**: If a session is interrupted mid-flow, `specs/<feature>/PROGRESS.md` tracks where you left off. Next `/sendit:go` detects it and offers to resume.
+
 ## Files
 
 - Specs live in `specs/<feature>/SPEC.md`
+- Global constraints in `specs/GLOBAL.md`
 - Index at `specs/INDEX.md`
 - Plans (when needed) live alongside specs in `specs/<feature>/PLAN.md`
+- Progress tracking in `specs/<feature>/PROGRESS.md` (temporary, deleted on completion)
 - Drift reports in `specs/<feature>/DRIFT.md`

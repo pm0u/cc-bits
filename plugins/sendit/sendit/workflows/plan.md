@@ -11,6 +11,7 @@ Creates the implementation plan. Light mode: inline tasks. Full mode: planner ag
 - `task`: The user's request
 - `weight`: light | full
 - `spec_path`: Path to relevant SPEC.md (may be null)
+- `research_path`: Path to RESEARCH.md (may be null — only present if researcher ran)
 - `test_files`: List of test files from test-writer (may be empty)
 
 ## Process
@@ -44,10 +45,12 @@ No plan file is written. Tasks live in the conversation context.
    ```
    Task(subagent_type="planner", prompt="
      SPEC: {spec_path}
+     RESEARCH: {research_path (if available)}
      TEST_FILES: {test_files}
      TASK: {task description}
 
      Create an implementation plan.
+     Read RESEARCH.md if provided for technical context.
      Write it to specs/{feature}/PLAN.md.
      Return the plan path and task count.
    ")

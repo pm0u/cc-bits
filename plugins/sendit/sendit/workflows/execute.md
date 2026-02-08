@@ -9,6 +9,12 @@ Implements the plan. Light mode: inline execution. Full mode: executor agent per
 - `spec_path`: Path to relevant SPEC.md
 - `test_files`: List of test files (may be empty)
 
+## Progress Tracking
+
+Before executing the first task, write `specs/{feature}/PROGRESS.md` with the task list, weight, and current step. Update it after each task completes (mark task as done, record commit hash). This enables session recovery if interrupted.
+
+@~/.claude/plugins/marketplaces/sendit/sendit/references/spec-format.md (see PROGRESS.md section)
+
 ## Process
 
 ### Light Execution
@@ -30,7 +36,8 @@ For each task in the numbered list:
    git add {specific files}
    git commit -m "{descriptive message}"
    ```
-5. Move to next task
+5. Update PROGRESS.md (mark task done, record commit)
+6. Move to next task
 
 If a task fails:
 - Debug (max 2 attempts)
@@ -64,7 +71,7 @@ Spawn executor agent for each task or group of related tasks.
      - Retry with modified instructions (1 retry max)
      - Skip and flag for user
      - Escalate to user
-   - If succeeded, proceed to next task
+   - If succeeded, update PROGRESS.md and proceed to next task
 
 4. After all tasks complete:
    - Run full test suite one more time
