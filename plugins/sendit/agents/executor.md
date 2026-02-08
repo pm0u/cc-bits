@@ -74,7 +74,7 @@ Only proceed here if the early complexity check passes.
    - If verification fails, debug and fix (max 3 attempts)
    - If still failing after 3 attempts, report the failure — don't brute force
 
-4. **Commit**:
+4. **Commit** (MANDATORY — a task is NOT done without a commit):
    - Stage only the files changed for this task
    - Commit with a descriptive message referencing the spec:
    ```
@@ -82,6 +82,12 @@ Only proceed here if the early complexity check passes.
 
    Spec: specs/{feature}/SPEC.md
    ```
+   - Capture the commit hash:
+   ```bash
+   git rev-parse HEAD
+   ```
+   - If the commit fails (e.g., pre-commit hook), fix and retry
+   - **You MUST include the commit hash in your output.** A task without a commit hash is not complete.
 
 </step>
 
@@ -115,11 +121,13 @@ Return to orchestrator:
   "task": "task description",
   "status": "done | failed | blocked | KICKBACK",
   "files_changed": ["list of files"],
-  "commit": "commit hash",
+  "commit": "abc1234 (REQUIRED for status: done — actual git hash from git rev-parse HEAD)",
   "verification": "passed | failed",
   "notes": "anything the orchestrator should know"
 }
 ```
+
+**CRITICAL**: `status: done` requires a valid `commit` hash. If you cannot provide one, your status is `failed`, not `done`.
 
 ## Failure Protocol
 

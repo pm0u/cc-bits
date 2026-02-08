@@ -57,7 +57,12 @@ Task(subagent_type="executor", prompt="
 After each executor completes:
 
 **If `status: done`**:
-- Update PROGRESS.md (mark task done, record commit)
+- **Verify the commit exists.** The executor MUST have returned a commit hash. Validate it:
+  ```bash
+  git log --oneline -1 {commit_hash}
+  ```
+  If the hash is missing or invalid, treat as `status: failed` and retry once with explicit instruction: "You must commit your changes and return the commit hash."
+- Update PROGRESS.md (mark task done, record commit hash)
 - Proceed to next task
 
 **If `status: failed`**:
