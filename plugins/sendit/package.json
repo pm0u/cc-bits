@@ -1,6 +1,6 @@
 {
   "name": "sendit",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Spec-Driven Development for Claude Code — specs are the source of truth, not process artifacts",
   "keywords": ["claude", "claude-code", "specs", "spec-driven-development", "testing", "planning"],
   "author": "Paul Mourer",
