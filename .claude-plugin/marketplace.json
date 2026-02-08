@@ -20,6 +20,11 @@
       "description": "Core skills library for Claude Code: TDD, debugging, collaboration patterns, and proven techniques"
     },
     {
+      "name": "sendit",
+      "source": "./plugins/sendit",
+      "description": "Spec-Driven Development for Claude Code — specs are the source of truth, not process artifacts"
+    },
+    {
       "name": "statusline",
       "source": "./plugins/statusline",
       "description": "Enhanced statusline showing model, directory, context usage, and API rate limits"
