@@ -58,7 +58,7 @@ The assessment produces a routing decision:
 **Assessment**: {light | full}
 **Reason**: {one-line explanation}
 **Relevant specs**: {list of spec paths, or "none"}
-**Spec-on-touch**: {yes | no} (whether we need to create a spec)
+**Spec-on-touch**: {true | false}
 ```
 
 ## Upgrade / Downgrade

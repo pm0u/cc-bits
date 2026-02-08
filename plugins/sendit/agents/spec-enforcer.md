@@ -69,8 +69,7 @@ Your job: Validate that the triangle is consistent after implementation.
 2. Read the changed files (implementation)
 3. Run tests if not already run:
    ```bash
-   # Detect test runner
-   if [ -f "package.json" ]; then npm test 2>&1; fi
+   npm test 2>&1 || python -m pytest 2>&1 || go test ./... 2>&1
    ```
 4. Validate each edge of the triangle:
 
