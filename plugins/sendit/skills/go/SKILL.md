@@ -52,6 +52,8 @@ Produce:
 - `relevant_specs`: list of spec paths (or empty)
 - `spec_on_touch`: true | false
 
+**Branch check**: If on `main`/`master`, ask the user if they want to create a feature branch first. Don't block — just surface it.
+
 **Announce the assessment** to the user:
 > "**{light|full}**: {one-line reason}. {Relevant spec info}."
 

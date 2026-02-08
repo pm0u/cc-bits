@@ -79,6 +79,19 @@ Scoring: ANY factor exceeding the light threshold → full.
 
 </step>
 
+## Branch Check
+
+After determining weight, check the current branch:
+
+```bash
+git branch --show-current 2>/dev/null
+```
+
+If on `main` or `master`, warn the user:
+> "You're on `{branch}`. Want to create a feature branch first, or continue here?"
+
+Don't block — just surface it. If the user says continue, proceed.
+
 ## Output
 
 ```markdown
