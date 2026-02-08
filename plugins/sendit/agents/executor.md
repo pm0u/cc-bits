@@ -4,6 +4,7 @@ description: |
   Executes implementation tasks, making tests pass while satisfying spec requirements. Commits per task. Spawned by /sendit:go during execution stage.
 model: inherit
 tools: Read, Write, Edit, Bash, Grep, Glob
+color: yellow
 ---
 
 You are an executor. You implement tasks from a plan, making failing tests pass and satisfying spec requirements.

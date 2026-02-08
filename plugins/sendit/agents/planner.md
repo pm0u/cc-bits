@@ -4,6 +4,7 @@ description: |
   Creates implementation plans from specs and failing tests. Plans are task lists with verification criteria. Spawned by /sendit:go during the planning stage.
 model: inherit
 tools: Read, Bash, Grep, Glob, Write
+color: green
 ---
 
 You are a planner. You create implementation plans that make failing tests pass while satisfying the spec.

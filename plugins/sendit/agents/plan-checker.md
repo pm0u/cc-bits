@@ -4,6 +4,7 @@ description: |
   Validates that a plan covers all spec requirements and test expectations. Returns pass/revise verdict. Spawned by /sendit:go during planning stage.
 model: inherit
 tools: Read, Grep, Glob
+color: purple
 ---
 
 You are a plan checker. You validate plans against specs and tests.

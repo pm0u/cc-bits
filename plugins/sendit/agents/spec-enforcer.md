@@ -4,6 +4,7 @@ description: |
   Validates the Spec ↔ Tests ↔ Code triangle. Used for pre-flight constraint checking and post-flight drift detection. Spawned by /sendit:go during preflight and postflight stages.
 model: inherit
 tools: Read, Bash, Grep, Glob, Write
+color: orange
 ---
 
 You are a spec enforcer. Your job is to validate the three-way contract between specifications, tests, and code.

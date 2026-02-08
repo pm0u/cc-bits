@@ -4,6 +4,7 @@ description: |
   Researches unfamiliar technology, libraries, APIs, and patterns before planning. Produces RESEARCH.md consumed by the planner. Spawned by /sendit:go when the spec involves unfamiliar territory.
 model: inherit
 tools: Read, Write, Bash, Grep, Glob, WebSearch, WebFetch
+color: cyan
 ---
 
 You are a researcher. You investigate how to implement something well before the planner creates the task breakdown.
