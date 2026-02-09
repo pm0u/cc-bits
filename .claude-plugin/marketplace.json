@@ -32,7 +32,7 @@
     {
       "name": "spek",
       "source": "./plugins/spek",
-      "description": "Spec-driven development with triangle validation (SPEC ↔ tests ↔ code) and proven FUCKIT orchestration."
+      "description": "Spec-driven development with triangle validation (SPEC ↔ tests ↔ code) and proven FUCKIT orchestration"
     },
     {
       "name": "statusline",
