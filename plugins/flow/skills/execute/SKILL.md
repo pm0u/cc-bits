@@ -77,6 +77,35 @@ if ! git diff-index --quiet HEAD --; then
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   exit 1
 fi
+
+# Load model profile (see model-profiles.md)
+CONFIG_FILE="specs/.flow/config.json"
+MODEL_PROFILE="balanced"  # default
+
+if [ -f "$CONFIG_FILE" ]; then
+  MODEL_PROFILE=$(jq -r '.model_profile // "balanced"' "$CONFIG_FILE" 2>/dev/null || echo "balanced")
+fi
+
+# Resolve models for each agent type
+case "$MODEL_PROFILE" in
+  quality)
+    EXECUTOR_MODEL="opus"
+    VERIFIER_MODEL="sonnet"
+    ;;
+  balanced)
+    EXECUTOR_MODEL="sonnet"
+    VERIFIER_MODEL="sonnet"
+    ;;
+  budget)
+    EXECUTOR_MODEL="sonnet"
+    VERIFIER_MODEL="haiku"
+    ;;
+  *)
+    # Invalid profile, use balanced
+    EXECUTOR_MODEL="sonnet"
+    VERIFIER_MODEL="sonnet"
+    ;;
+esac
 ```
 
 ### 2. Check if Parent or Child
@@ -328,7 +357,7 @@ OR
 </output_format>
 ",
   subagent_type="flow:executor",
-  model="sonnet",
+  model="$EXECUTOR_MODEL",
   description="Execute task $TASK_NUM: ${TASK_NAMES[$TASK_NUM]}"
 )
 
@@ -443,7 +472,7 @@ Return summary:
 </output_format>
 ",
   subagent_type="flow:verifier",
-  model="sonnet",
+  model="$VERIFIER_MODEL",
   description="Verify $FEATURE goal achievement"
 )
 

@@ -64,6 +64,35 @@ if [ "$STATUS" = "DRAFT" ]; then
   echo "Warning: Spec is DRAFT (has OPEN items)"
   # Offer: Resolve | Proceed anyway
 fi
+
+# Load model profile (see model-profiles.md)
+CONFIG_FILE="specs/.flow/config.json"
+MODEL_PROFILE="balanced"  # default
+
+if [ -f "$CONFIG_FILE" ]; then
+  MODEL_PROFILE=$(jq -r '.model_profile // "balanced"' "$CONFIG_FILE" 2>/dev/null || echo "balanced")
+fi
+
+# Resolve models for each agent type
+case "$MODEL_PROFILE" in
+  quality)
+    PLANNER_MODEL="opus"
+    RESEARCHER_MODEL="opus"
+    ;;
+  balanced)
+    PLANNER_MODEL="opus"
+    RESEARCHER_MODEL="sonnet"
+    ;;
+  budget)
+    PLANNER_MODEL="sonnet"
+    RESEARCHER_MODEL="haiku"
+    ;;
+  *)
+    # Invalid profile, use balanced
+    PLANNER_MODEL="opus"
+    RESEARCHER_MODEL="sonnet"
+    ;;
+esac
 ```
 
 ### 2. Check if Parent or Child
@@ -173,7 +202,7 @@ Return summary:
 </output_format>
 ",
   subagent_type="flow:researcher",
-  model="sonnet",
+  model="$RESEARCHER_MODEL",
   description="Research $FEATURE"
 )
 
@@ -260,7 +289,7 @@ OR
 </output_format>
 ",
   subagent_type="flow:planner",
-  model="opus",
+  model="$PLANNER_MODEL",
   description="Plan $FEATURE"
 )
 
