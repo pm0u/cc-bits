@@ -155,6 +155,21 @@ async function getUsageData() {
   }
 }
 
+// Get current git branch
+function getGitBranch(cwd) {
+  try {
+    const { execSync } = require('child_process');
+    const branch = execSync('git branch --show-current', {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'ignore']
+    }).trim();
+    return branch || null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // Main function
 async function main() {
   try {
@@ -171,6 +186,7 @@ async function main() {
     const model = data.model?.display_name || 'Claude';
     const dir = data.workspace?.current_dir || process.cwd();
     const remaining = data.context_window?.remaining_percentage;
+    const branch = getGitBranch(dir);
 
     // Get usage data
     const usage = await getUsageData();
@@ -200,36 +216,38 @@ async function main() {
       ctxBar = `ctx ${color}${bar} ${used}%\x1b[0m`;
     }
 
-    // Line 1: model, directory, and context (if no usage limits)
-    const line1Parts = [`\x1b[2m${model}\x1b[0m │ \x1b[2m${formatDir(dir)}\x1b[0m`];
-    if (ctxBar && !hasUsageLimits) {
-      line1Parts.push(ctxBar);
+    // Line 1: model │ directory │ branch
+    const line1Parts = [`\x1b[2m${model}\x1b[0m`, `\x1b[2m${formatDir(dir)}\x1b[0m`];
+    if (branch) {
+      line1Parts.push(`\x1b[2m ${branch}\x1b[0m`);
     }
 
     const lines = [line1Parts.join(' │ ')];
 
-    // Line 2: context + usage limits (only if usage limits exist)
+    // Line 2: context (always shown if available)
+    if (ctxBar) {
+      lines.push(ctxBar);
+    }
+
+    // Line 3: usage limits (only if they exist)
     if (hasUsageLimits) {
-      const line2Parts = [];
-      if (ctxBar) {
-        line2Parts.push(ctxBar);
-      }
+      const line3Parts = [];
 
       if (usage.five_hour) {
         const sessionPct = usage.five_hour.utilization || 0;
         const sessionBar = createProgressBar(sessionPct, '5h');
         const sessionReset = formatResetTime(usage.five_hour.resets_at);
-        line2Parts.push(`${sessionBar} ${sessionReset}`);
+        line3Parts.push(`${sessionBar} ${sessionReset}`);
       }
 
       if (usage.seven_day) {
         const weeklyPct = usage.seven_day.utilization || 0;
         const weeklyBar = createProgressBar(weeklyPct, '7d');
         const weeklyReset = formatResetTime(usage.seven_day.resets_at);
-        line2Parts.push(`${weeklyBar} ${weeklyReset}`);
+        line3Parts.push(`${weeklyBar} ${weeklyReset}`);
       }
 
-      lines.push(line2Parts.join(' │ '));
+      lines.push(line3Parts.join(' │ '));
     }
 
     process.stdout.write(lines.join('\n'));
