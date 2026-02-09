@@ -39,13 +39,67 @@ Phase number: $ARGUMENTS (required)
 </context>
 
 <process>
-1. Validate phase number (error if missing or not in roadmap)
-2. Check if CONTEXT.md exists (offer update/view/skip if yes)
-3. **Analyze phase** — Identify domain and generate phase-specific gray areas
-4. **Present gray areas** — Multi-select: which to discuss? (NO skip option)
-5. **Deep-dive each area** — 4 questions per area, then offer more/next
-6. **Write CONTEXT.md** — Sections match areas discussed
-7. Offer next steps (research or plan)
+
+### 1. Validate Phase Number
+
+Check that phase exists in ROADMAP.md. Error if missing or invalid.
+
+### 2. Check for Existing CONTEXT.md
+
+If `{phase}-CONTEXT.md` exists:
+
+**Use AskUserQuestion:**
+- header: "Existing context"
+- question: "Context file exists for Phase {N}. What do you want to do?"
+- options:
+  - "Update it" — Re-discuss and update (Recommended)
+  - "View it first" — Show me what's there
+  - "Skip" — Use existing context
+
+### 3. Analyze Phase & Identify Gray Areas
+
+Identify domain and generate 3-4 phase-specific gray areas (not generic categories).
+
+### 4. Present Gray Areas (Multi-Select)
+
+**Use AskUserQuestion:**
+- header: "Gray areas"
+- question: "Which areas do you want to discuss for Phase {N}?"
+- multiSelect: true
+- options:
+  - "{area_1}" — {why it matters}
+  - "{area_2}" — {why it matters}
+  - "{area_3}" — {why it matters}
+  - "{area_4}" — {why it matters}
+
+NO "Skip all" option - user invoked this command to discuss.
+
+### 5. Deep-Dive Each Selected Area
+
+For each selected area, ask 4 questions with concrete options.
+
+After 4 questions:
+
+**Use AskUserQuestion:**
+- header: "Continue?"
+- question: "More questions about {area}, or move to next?"
+- options:
+  - "Move to next area" — Continue (Recommended)
+  - "Ask 4 more questions" — I need more clarity
+
+### 6. Write CONTEXT.md
+
+Create `{phase}-CONTEXT.md` with sections matching discussed areas.
+
+### 7. Offer Next Steps
+
+**Use AskUserQuestion:**
+- header: "Next step"
+- question: "How do you want to proceed?"
+- options:
+  - "Plan this phase" — Run /spek:plan-phase {N} (Recommended)
+  - "Research first" — Need to investigate unknowns
+  - "I'll review" — Stop here
 
 **CRITICAL: Scope guardrail**
 - Phase boundary from ROADMAP.md is FIXED
