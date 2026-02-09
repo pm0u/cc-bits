@@ -212,9 +212,13 @@ for TASK_NUM in $(seq 1 $TOTAL_TASKS); do
   PLAN_CONTENT=$(cat "specs/${FEATURE}/PLAN.md")
   RESEARCH_CONTENT=$(cat "specs/${FEATURE}/RESEARCH.md" 2>/dev/null || echo "")
 
-  # Build executor prompt
-  EXECUTOR_PROMPT="<objective>
-Execute Task $TASK_NUM of $TOTAL_TASKS for: $FEATURE
+  # Spawn executor agent with inlined context
+  echo "Spawning executor agent..."
+  echo ""
+```
+
+Task(
+  prompt="Execute Task $TASK_NUM of $TOTAL_TASKS for feature: $FEATURE
 
 <task>
 $TASK_CONTENT
@@ -224,35 +228,80 @@ $TASK_CONTENT
 $SPEC_CONTENT
 </spec_context>
 
+<plan_context>
+$PLAN_CONTENT
+</plan_context>
+
 <research_context>
 $RESEARCH_CONTENT
 </research_context>
 
 <instructions>
-1. Implement the task according to actions listed
-2. Honor Implementation Decisions from SPEC.md
-3. Follow research recommendations
-4. Write tests
-5. Verify all criteria
-6. Create atomic commit
+1. Read your role: Follow the flow:executor agent documentation at ~/.claude/plugins/marketplaces/flow/agents/executor.md
+2. Implement the task according to actions listed in the task section
+3. Honor Implementation Decisions from SPEC.md Context section
+4. Follow research recommendations (use standard stack, don't hand-roll solutions)
+5. Write tests according to verification criteria (section 3.4 of executor.md)
+6. Run tests and verify all criteria pass (section 3.5 of executor.md)
+7. Tests MUST be green before committing (run npm test or appropriate test command)
+8. Create atomic commit for this task only
+9. Return structured response: EXECUTION COMPLETE | EXECUTION BLOCKED | EXECUTION FAILED
 </instructions>
 
 <output_format>
 ## EXECUTION COMPLETE
+**Task:** $TASK_NUM - {name}
+**Files modified:** {list}
+**Tests:** {status - passed/created}
+**Verification:** All criteria satisfied
+**Commit:** {hash}
+
 OR
+
 ## EXECUTION BLOCKED
+**Task:** $TASK_NUM - {name}
+**Issue:** {description}
+**Need:** {what would unblock}
+
 OR
+
 ## EXECUTION FAILED
+**Task:** $TASK_NUM - {name}
+**Error:** {error message}
+**Attempts:** {N}
 </output_format>
-</objective>"
+",
+  subagent_type="flow:executor",
+  model="sonnet",
+  description="Execute task $TASK_NUM: $TASK_NAME"
+)
 
-  # Spawn executor
-  echo "Executing..."
-  # Task(subagent_type="general-purpose", model="sonnet", prompt=...)
+```bash
+  # Check executor output and handle response
+  if grep -q "## EXECUTION COMPLETE" <<< "$EXECUTOR_OUTPUT"; then
+    echo "✓ Task $TASK_NUM complete"
 
-  # For now, indicate where executor would run
-  echo "TODO: Spawn executor agent for task $TASK_NUM"
-  echo ""
+    # Extract commit hash
+    COMMIT_HASH=$(echo "$EXECUTOR_OUTPUT" | grep "Commit:" | awk '{print $2}')
+    echo "  Commit: $COMMIT_HASH"
+    echo ""
+
+  elif grep -q "## EXECUTION BLOCKED" <<< "$EXECUTOR_OUTPUT"; then
+    echo "✗ Task $TASK_NUM blocked"
+    echo ""
+    echo "$EXECUTOR_OUTPUT"
+    echo ""
+    echo "Execution paused. Resolve blockers and restart."
+    exit 1
+
+  elif grep -q "## EXECUTION FAILED" <<< "$EXECUTOR_OUTPUT"; then
+    echo "✗ Task $TASK_NUM failed"
+    echo ""
+    echo "$EXECUTOR_OUTPUT"
+    echo ""
+    echo "Execution failed. Review errors and restart."
+    exit 1
+  fi
 done
 ```
 
