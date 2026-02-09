@@ -1,721 +1,397 @@
 ---
 name: spek:new-milestone
-description: Start a new milestone cycle — update PROJECT.md and route to requirements
-argument-hint: "[milestone name, e.g., 'v1.1 Notifications']"
+description: Generate roadmap from SPEC.md and initialize development workflow
+argument-hint: "[feature name or path to SPEC.md]"
 allowed-tools:
   - Read
   - Write
   - Bash
+  - Glob
+  - Grep
   - Task
   - AskUserQuestion
 ---
 
 <objective>
-Start a new milestone through unified flow: questioning → research (optional) → requirements → roadmap.
+Bridge from spec-driven requirements (SPEC.md) to fuckit development workflow.
 
-This is the brownfield equivalent of new-project. The project exists, PROJECT.md has history. This command gathers "what's next", updates PROJECT.md, then continues through the full requirements → roadmap cycle.
+**Reads:** `specs/{feature}/SPEC.md` (created by spek:define)
+**Creates:**
+- `.planning/` directory structure
+- `.planning/PROJECT.md` (derived from SPEC.md)
+- `.planning/ROADMAP.md` (phases from SPEC requirements)
+- `.planning/STATE.md` (initial state)
 
-**Creates/Updates:**
-- `.planning/PROJECT.md` — updated with new milestone goals
-- `.planning/research/` — domain research (optional, focuses on NEW features)
-- `.planning/REQUIREMENTS.md` — scoped requirements for this milestone
-- `.planning/ROADMAP.md` — phase structure (continues numbering)
-- `.planning/STATE.md` — reset for new milestone
-
-**After this command:** Run `/spek:plan-phase [N]` to start execution.
+**After this command:** Run `/spek:go` to begin phase execution.
 </objective>
 
 <execution_context>
-@~/.claude/plugins/marketplaces/spek/spek/references/questioning.md
-@~/.claude/plugins/marketplaces/spek/spek/references/ui-brand.md
-@~/.claude/plugins/marketplaces/spek/spek/templates/project.md
-@~/.claude/plugins/marketplaces/spek/spek/templates/requirements.md
+@~/.claude/plugins/marketplaces/spek/spek/references/spec-format.md
+@~/.claude/plugins/marketplaces/spek/spek/templates/roadmap.md
 </execution_context>
 
 <context>
-Milestone name: $ARGUMENTS (optional - will prompt if not provided)
+Feature name: $ARGUMENTS (optional - will prompt if not provided)
 
-**Load project context:**
-@.planning/PROJECT.md
-@.planning/STATE.md
-@.planning/MILESTONES.md
-@.planning/config.json
-
-**Load milestone context (if exists, from /spek:discuss-milestone):**
-@.planning/MILESTONE-CONTEXT.md
+**Expects:**
+- `specs/` directory exists
+- At least one SPEC.md file in `specs/{feature}/SPEC.md`
+- SPEC.md has status: ACTIVE (not DRAFT)
 </context>
 
 <process>
 
-## Phase 1: Load Context
+### 1. Find SPEC Files
 
-- Read PROJECT.md (existing project, Validated requirements, decisions)
-- Read MILESTONES.md (what shipped previously)
-- Read STATE.md (pending todos, blockers)
-- Check for MILESTONE-CONTEXT.md (from /spek:discuss-milestone)
+```bash
+INPUT="$1"
 
-## Phase 2: Gather Milestone Goals
+# Check if specs/ directory exists
+if [ ! -d "specs" ]; then
+  echo "Error: No specs/ directory found"
+  echo "Run /spek:define first to create your spec"
+  exit 1
+fi
+```
 
-**If MILESTONE-CONTEXT.md exists:**
-- Use features and scope from discuss-milestone
-- Present summary for confirmation
+**If INPUT provided:**
 
-**If no context file:**
-- Present what shipped in last milestone
-- Ask: "What do you want to build next?"
-- Use AskUserQuestion to explore features
-- Probe for priorities, constraints, scope
+```bash
+if [[ "$INPUT" == specs/* ]]; then
+  # Full path provided: specs/feature/SPEC.md
+  SPEC_PATH="$INPUT"
+elif [[ -f "specs/${INPUT}/SPEC.md" ]]; then
+  # Feature name provided: feature
+  SPEC_PATH="specs/${INPUT}/SPEC.md"
+else
+  echo "Error: SPEC not found at: specs/${INPUT}/SPEC.md"
+  exit 1
+fi
 
-## Phase 3: Determine Milestone Version
+FEATURE="$INPUT"
+```
 
-- Parse last version from MILESTONES.md
-- Suggest next version (v1.0 → v1.1, or v2.0 for major)
-- Confirm with user
+**If no INPUT provided:**
 
-## Phase 4: Update PROJECT.md
+```bash
+# Find all SPEC.md files
+SPEC_FILES=($(find specs -name "SPEC.md" -type f))
 
-Add/update these sections:
+if [ ${#SPEC_FILES[@]} -eq 0 ]; then
+  echo "Error: No SPEC.md files found in specs/"
+  echo "Run /spek:define first"
+  exit 1
+elif [ ${#SPEC_FILES[@]} -eq 1 ]; then
+  # Single spec, use it
+  SPEC_PATH="${SPEC_FILES[0]}"
+  FEATURE=$(dirname "$SPEC_PATH" | sed 's|specs/||')
+else
+  # Multiple specs - ask user which one
+```
+
+**Use AskUserQuestion:**
+- header: "Select spec"
+- question: "Which spec should we use for the roadmap?"
+- options: (list each spec with its summary line)
+
+Store selected in SPEC_PATH and FEATURE variables.
+
+```bash
+fi
+```
+
+### 2. Validate SPEC Status
+
+```bash
+# Read spec status
+SPEC_STATUS=$(grep "^## Status" "$SPEC_PATH" | tail -1 | xargs)
+
+if [[ "$SPEC_STATUS" == *"DRAFT"* ]]; then
+  echo "Error: SPEC is in DRAFT status (has OPEN items)"
+  echo "Resolve OPEN items in $SPEC_PATH before creating roadmap"
+  echo ""
+  echo "Options:"
+  echo "- Edit $SPEC_PATH manually"
+  echo "- Run /spek:define $FEATURE --force to re-discuss"
+  exit 1
+fi
+
+echo "✓ Found SPEC: $SPEC_PATH (status: ACTIVE)"
+echo ""
+```
+
+### 3. Check for Child Specs
+
+```bash
+# Check if this is a parent spec with children
+SPEC_DIR=$(dirname "$SPEC_PATH")
+CHILDREN=($(find "$SPEC_DIR" -mindepth 1 -maxdepth 1 -type d))
+
+if [ ${#CHILDREN[@]} -gt 0 ]; then
+  echo "Detected parent spec with ${#CHILDREN[@]} children"
+  echo ""
+  HAS_CHILDREN=true
+else
+  HAS_CHILDREN=false
+fi
+```
+
+### 4. Read SPEC Content
+
+```bash
+# Extract key sections from SPEC.md
+SPEC_CONTENT=$(cat "$SPEC_PATH")
+
+# Extract summary
+SUMMARY=$(grep "^>" "$SPEC_PATH" | head -1 | sed 's/^> //')
+
+# Extract must-have requirements (for phase breakdown)
+MUST_HAVES=$(sed -n '/^### Must Have/,/^### /p' "$SPEC_PATH" | grep "^- \[ \]" | sed 's/^- \[ \] //')
+
+# Extract acceptance criteria (for success metrics)
+ACCEPTANCE=$(sed -n '/^## Acceptance Criteria/,/^## /p' "$SPEC_PATH" | grep "^- \[ \]")
+
+# Count for phase estimation
+NUM_REQUIREMENTS=$(echo "$MUST_HAVES" | wc -l | tr -d ' ')
+NUM_CRITERIA=$(echo "$ACCEPTANCE" | wc -l | tr -d ' ')
+
+echo "Requirements: $NUM_REQUIREMENTS must-haves"
+echo "Acceptance Criteria: $NUM_CRITERIA conditions"
+echo ""
+```
+
+### 5. Initialize .planning Structure
+
+```bash
+# Create .planning directory if needed
+if [ ! -d ".planning" ]; then
+  mkdir -p .planning/phases
+  echo "✓ Created .planning/ structure"
+fi
+
+# Create or update PROJECT.md from SPEC.md
+```
+
+**Generate PROJECT.md content:**
 
 ```markdown
-## Current Milestone: v[X.Y] [Name]
+# {Feature Name from SPEC}
 
-**Goal:** [One sentence describing milestone focus]
+> {Summary line from SPEC}
+
+## What We're Building
+
+{Context section from SPEC - why this exists, what problem it solves}
+
+## Current Milestone: v1.0 {Feature Name}
+
+**Goal:** {Summary from SPEC}
 
 **Target features:**
-- [Feature 1]
-- [Feature 2]
-- [Feature 3]
-```
+{Must-have requirements from SPEC}
 
-Update Active requirements section with new goals.
+## Requirements
 
-Update "Last updated" footer.
+### Active
 
-## Phase 5: Update STATE.md
+{Must-have requirements from SPEC as checklist}
 
-```markdown
-## Current Position
+### Deferred
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: [today] — Milestone v[X.Y] started
-```
+{Should-have and Won't-have from SPEC}
 
-Keep Accumulated Context section (decisions, blockers) from previous milestone.
+## Success Criteria
 
-## Phase 6: Cleanup and Commit
+{Acceptance criteria from SPEC}
 
-Delete MILESTONE-CONTEXT.md if exists (consumed).
+## Implementation Decisions (From SPEC)
 
-Check planning config:
-```bash
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
-git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
-```
-
-If `COMMIT_PLANNING_DOCS=false`: Skip git operations
-
-If `COMMIT_PLANNING_DOCS=true` (default):
-```bash
-git add .planning/PROJECT.md .planning/STATE.md
-git commit -m "docs: start milestone v[X.Y] [Name]"
-```
-
-## Phase 6.5: Resolve Model Profile
-
-Read model profile for agent spawning:
-
-```bash
-MODEL_PROFILE=$(cat .planning/config.json 2>/dev/null | grep -o '"model_profile"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || echo "balanced")
-```
-
-Default to "balanced" if not set.
-
-**Model lookup table:**
-
-| Agent | quality | balanced | budget |
-|-------|---------|----------|--------|
-| spek:project-researcher | opus | sonnet | haiku |
-| spek:research-synthesizer | sonnet | sonnet | haiku |
-| spek:roadmapper | opus | sonnet | sonnet |
-
-Store resolved models for use in Task calls below.
-
-## Phase 7: Research Decision
-
-Use AskUserQuestion:
-- header: "Research"
-- question: "Research the domain ecosystem for new features before defining requirements?"
-- options:
-  - "Research first (Recommended)" — Discover patterns, expected features, architecture for NEW capabilities
-  - "Skip research" — I know what I need, go straight to requirements
-
-**If "Research first":**
-
-Display stage banner:
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- SPEK ► RESEARCHING
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Researching [new features] ecosystem...
-```
-
-Create research directory:
-```bash
-mkdir -p .planning/research
-```
-
-Display spawning indicator:
-```
-◆ Spawning 4 researchers in parallel...
-  → Stack research (for new features)
-  → Features research
-  → Architecture research (integration)
-  → Pitfalls research
-```
-
-Spawn 4 parallel spek:project-researcher agents with milestone-aware context:
-
-```
-Task(prompt="
-<research_type>
-Project Research — Stack dimension for [new features].
-</research_type>
-
-<milestone_context>
-SUBSEQUENT MILESTONE — Adding [target features] to existing app.
-
-Existing validated capabilities (DO NOT re-research):
-[List from PROJECT.md Validated requirements]
-
-Focus ONLY on what's needed for the NEW features.
-</milestone_context>
-
-<question>
-What stack additions/changes are needed for [new features]?
-</question>
-
-<project_context>
-[PROJECT.md summary - current state, new milestone goals]
-</project_context>
-
-<downstream_consumer>
-Your STACK.md feeds into roadmap creation. Be prescriptive:
-- Specific libraries with versions for NEW capabilities
-- Integration points with existing stack
-- What NOT to add and why
-</downstream_consumer>
-
-<quality_gate>
-- [ ] Versions are current (verify with Context7/official docs, not training data)
-- [ ] Rationale explains WHY, not just WHAT
-- [ ] Integration with existing stack considered
-</quality_gate>
-
-<output>
-Write to: .planning/research/STACK.md
-Use template: ~/.claude/plugins/marketplaces/spek/spek/templates/research-project/STACK.md
-</output>
-", subagent_type="spek:project-researcher", model="{researcher_model}", description="Stack research")
-
-Task(prompt="
-<research_type>
-Project Research — Features dimension for [new features].
-</research_type>
-
-<milestone_context>
-SUBSEQUENT MILESTONE — Adding [target features] to existing app.
-
-Existing features (already built):
-[List from PROJECT.md Validated requirements]
-
-Focus on how [new features] typically work, expected behavior.
-</milestone_context>
-
-<question>
-How do [target features] typically work? What's expected behavior?
-</question>
-
-<project_context>
-[PROJECT.md summary - new milestone goals]
-</project_context>
-
-<downstream_consumer>
-Your FEATURES.md feeds into requirements definition. Categorize clearly:
-- Table stakes (must have for these features)
-- Differentiators (competitive advantage)
-- Anti-features (things to deliberately NOT build)
-</downstream_consumer>
-
-<quality_gate>
-- [ ] Categories are clear (table stakes vs differentiators vs anti-features)
-- [ ] Complexity noted for each feature
-- [ ] Dependencies on existing features identified
-</quality_gate>
-
-<output>
-Write to: .planning/research/FEATURES.md
-Use template: ~/.claude/plugins/marketplaces/spek/spek/templates/research-project/FEATURES.md
-</output>
-", subagent_type="spek:project-researcher", model="{researcher_model}", description="Features research")
-
-Task(prompt="
-<research_type>
-Project Research — Architecture dimension for [new features].
-</research_type>
-
-<milestone_context>
-SUBSEQUENT MILESTONE — Adding [target features] to existing app.
-
-Existing architecture:
-[Summary from PROJECT.md or codebase map]
-
-Focus on how [new features] integrate with existing architecture.
-</milestone_context>
-
-<question>
-How do [target features] integrate with existing [domain] architecture?
-</question>
-
-<project_context>
-[PROJECT.md summary - current architecture, new features]
-</project_context>
-
-<downstream_consumer>
-Your ARCHITECTURE.md informs phase structure in roadmap. Include:
-- Integration points with existing components
-- New components needed
-- Data flow changes
-- Suggested build order
-</downstream_consumer>
-
-<quality_gate>
-- [ ] Integration points clearly identified
-- [ ] New vs modified components explicit
-- [ ] Build order considers existing dependencies
-</quality_gate>
-
-<output>
-Write to: .planning/research/ARCHITECTURE.md
-Use template: ~/.claude/plugins/marketplaces/spek/spek/templates/research-project/ARCHITECTURE.md
-</output>
-", subagent_type="spek:project-researcher", model="{researcher_model}", description="Architecture research")
-
-Task(prompt="
-<research_type>
-Project Research — Pitfalls dimension for [new features].
-</research_type>
-
-<milestone_context>
-SUBSEQUENT MILESTONE — Adding [target features] to existing app.
-
-Focus on common mistakes when ADDING these features to an existing system.
-</milestone_context>
-
-<question>
-What are common mistakes when adding [target features] to [domain]?
-</question>
-
-<project_context>
-[PROJECT.md summary - current state, new features]
-</project_context>
-
-<downstream_consumer>
-Your PITFALLS.md prevents mistakes in roadmap/planning. For each pitfall:
-- Warning signs (how to detect early)
-- Prevention strategy (how to avoid)
-- Which phase should address it
-</downstream_consumer>
-
-<quality_gate>
-- [ ] Pitfalls are specific to adding these features (not generic)
-- [ ] Integration pitfalls with existing system covered
-- [ ] Prevention strategies are actionable
-</quality_gate>
-
-<output>
-Write to: .planning/research/PITFALLS.md
-Use template: ~/.claude/plugins/marketplaces/spek/spek/templates/research-project/PITFALLS.md
-</output>
-", subagent_type="spek:project-researcher", model="{researcher_model}", description="Pitfalls research")
-```
-
-After all 4 agents complete, spawn synthesizer to create SUMMARY.md:
-
-```
-Task(prompt="
-<task>
-Synthesize research outputs into SUMMARY.md.
-</task>
-
-<research_files>
-Read these files:
-- .planning/research/STACK.md
-- .planning/research/FEATURES.md
-- .planning/research/ARCHITECTURE.md
-- .planning/research/PITFALLS.md
-</research_files>
-
-<output>
-Write to: .planning/research/SUMMARY.md
-Use template: ~/.claude/plugins/marketplaces/spek/spek/templates/research-project/SUMMARY.md
-Commit after writing.
-</output>
-", subagent_type="spek:research-synthesizer", model="{synthesizer_model}", description="Synthesize research")
-```
-
-Display research complete banner and key findings:
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- SPEK ► RESEARCH COMPLETE ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## Key Findings
-
-**Stack additions:** [from SUMMARY.md]
-**New feature table stakes:** [from SUMMARY.md]
-**Watch Out For:** [from SUMMARY.md]
-
-Files: `.planning/research/`
-```
-
-**If "Skip research":** Continue to Phase 8.
-
-## Phase 8: Define Requirements
-
-Display stage banner:
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- SPEK ► DEFINING REQUIREMENTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-**Load context:**
-
-Read PROJECT.md and extract:
-- Core value (the ONE thing that must work)
-- Current milestone goals
-- Validated requirements (what already exists)
-
-**If research exists:** Read research/FEATURES.md and extract feature categories.
-
-**Present features by category:**
-
-```
-Here are the features for [new capabilities]:
-
-## [Category 1]
-**Table stakes:**
-- Feature A
-- Feature B
-
-**Differentiators:**
-- Feature C
-- Feature D
-
-**Research notes:** [any relevant notes]
+{Implementation Decisions section from SPEC.md Context}
 
 ---
-
-## [Next Category]
-...
+*Generated from specs/{feature}/SPEC.md by spek:new-milestone*
+*Last updated: {timestamp}*
 ```
 
-**If no research:** Gather requirements through conversation instead.
+Write to `.planning/PROJECT.md`
 
-Ask: "What are the main things users need to be able to do with [new features]?"
+### 6. Generate Roadmap from Requirements
 
-For each capability mentioned:
-- Ask clarifying questions to make it specific
-- Probe for related capabilities
-- Group into categories
+Analyze requirements and break into phases:
 
-**Scope each category:**
+**Phase estimation heuristics:**
+- 1-3 requirements → Single phase
+- 4-6 requirements → 2-3 phases (setup/core/polish)
+- 7+ requirements → 3-5 phases (logical groupings)
 
-For each category, use AskUserQuestion:
+**For parent specs with children:**
+- Each child becomes a phase (or phase group)
+- Check child SPEC.md files for their requirements
+- Order by dependencies
 
-- header: "[Category name]"
-- question: "Which [category] features are in this milestone?"
-- multiSelect: true
-- options:
-  - "[Feature 1]" — [brief description]
-  - "[Feature 2]" — [brief description]
-  - "[Feature 3]" — [brief description]
-  - "None for this milestone" — Defer entire category
+**Phase breakdown principles:**
+- Foundation first (data models, core logic)
+- Then features (UI, API, workflows)
+- Then polish (error handling, edge cases, optimization)
 
-Track responses:
-- Selected features → this milestone's requirements
-- Unselected table stakes → future milestone
-- Unselected differentiators → out of scope
-
-**Identify gaps:**
-
-Use AskUserQuestion:
-- header: "Additions"
-- question: "Any requirements research missed? (Features specific to your vision)"
-- options:
-  - "No, research covered it" — Proceed
-  - "Yes, let me add some" — Capture additions
-
-**Generate REQUIREMENTS.md:**
-
-Create `.planning/REQUIREMENTS.md` with:
-- v1 Requirements for THIS milestone grouped by category (checkboxes, REQ-IDs)
-- Future Requirements (deferred to later milestones)
-- Out of Scope (explicit exclusions with reasoning)
-- Traceability section (empty, filled by roadmap)
-
-**REQ-ID format:** `[CATEGORY]-[NUMBER]` (AUTH-01, NOTIF-02)
-
-Continue numbering from existing requirements if applicable.
-
-**Requirement quality criteria:**
-
-Good requirements are:
-- **Specific and testable:** "User can reset password via email link" (not "Handle password reset")
-- **User-centric:** "User can X" (not "System does Y")
-- **Atomic:** One capability per requirement (not "User can login and manage profile")
-- **Independent:** Minimal dependencies on other requirements
-
-**Present full requirements list:**
-
-Show every requirement (not counts) for user confirmation:
+**Use Task tool to spawn roadmapper agent:**
 
 ```
-## Milestone v[X.Y] Requirements
+Task(
+  prompt="Create ROADMAP.md from SPEC.md
 
-### [Category 1]
-- [ ] **CAT1-01**: User can do X
-- [ ] **CAT1-02**: User can do Y
+<spec_path>$SPEC_PATH</spec_path>
 
-### [Category 2]
-- [ ] **CAT2-01**: User can do Z
+<spec_content>
+$SPEC_CONTENT
+</spec_content>
 
-[... full list ...]
-
----
-
-Does this capture what you're building? (yes / adjust)
-```
-
-If "adjust": Return to scoping.
-
-**Commit requirements:**
-
-Check planning config (same pattern as Phase 6).
-
-If committing:
-```bash
-git add .planning/REQUIREMENTS.md
-git commit -m "$(cat <<'EOF'
-docs: define milestone v[X.Y] requirements
-
-[X] requirements across [N] categories
-EOF
-)"
-```
-
-## Phase 9: Create Roadmap
-
-Display stage banner:
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- SPEK ► CREATING ROADMAP
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-◆ Spawning roadmapper...
-```
-
-**Determine starting phase number:**
-
-Read MILESTONES.md to find the last phase number from previous milestone.
-New phases continue from there (e.g., if v1.0 ended at phase 5, v1.1 starts at phase 6).
-
-Spawn spek:roadmapper agent with context:
-
-```
-Task(prompt="
-<planning_context>
-
-**Project:**
-@.planning/PROJECT.md
-
-**Requirements:**
-@.planning/REQUIREMENTS.md
-
-**Research (if exists):**
-@.planning/research/SUMMARY.md
-
-**Config:**
-@.planning/config.json
-
-**Previous milestone (for phase numbering):**
-@.planning/MILESTONES.md
-
-</planning_context>
+<has_children>$HAS_CHILDREN</has_children>
 
 <instructions>
-Create roadmap for milestone v[X.Y]:
-1. Start phase numbering from [N] (continues from previous milestone)
-2. Derive phases from THIS MILESTONE's requirements (don't include validated/existing)
-3. Map every requirement to exactly one phase
-4. Derive 2-5 success criteria per phase (observable user behaviors)
-5. Validate 100% coverage of new requirements
-6. Write files immediately (ROADMAP.md, STATE.md, update REQUIREMENTS.md traceability)
-7. Return ROADMAP CREATED with summary
+Generate ROADMAP.md by breaking requirements into 3-5 phases.
 
-Write files first, then return. This ensures artifacts persist even if context is lost.
+1. Read must-have requirements from SPEC.md
+2. Read acceptance criteria
+3. Read design decisions (technical constraints)
+4. Group requirements into logical phases
+5. For each phase:
+   - Clear goal statement
+   - List requirements it delivers
+   - Success criteria
+   - Dependencies on previous phases
+
+Output format:
+# Roadmap: {feature}
+
+## Overview
+
+**Milestone:** v1.0 {feature}
+**Phases:** {N}
+
+## Phases
+
+### Phase 1: {name}
+
+**Goal:** {one sentence}
+
+**Delivers:**
+- {requirement 1}
+- {requirement 2}
+
+**Success criteria:**
+- {criterion from SPEC}
+
+**Dependencies:** None
+
+...repeat for each phase...
 </instructions>
-", subagent_type="spek:roadmapper", model="{roadmapper_model}", description="Create roadmap")
+
+Output file: .planning/ROADMAP.md
+",
+  subagent_type="spek:roadmapper",
+  model="opus",
+  description="Generate roadmap from $FEATURE"
+)
 ```
 
-**Handle roadmapper return:**
+### 7. Initialize STATE.md
 
-**If `## ROADMAP BLOCKED`:**
-- Present blocker information
-- Work with user to resolve
-- Re-spawn when resolved
-
-**If `## ROADMAP CREATED`:**
-
-Read the created ROADMAP.md and present it nicely inline:
-
-```
----
-
-## Proposed Roadmap
-
-**[N] phases** | **[X] requirements mapped** | All milestone requirements covered ✓
-
-| # | Phase | Goal | Requirements | Success Criteria |
-|---|-------|------|--------------|------------------|
-| [N] | [Name] | [Goal] | [REQ-IDs] | [count] |
-| [N+1] | [Name] | [Goal] | [REQ-IDs] | [count] |
-...
-
-### Phase Details
-
-**Phase [N]: [Name]**
-Goal: [goal]
-Requirements: [REQ-IDs]
-Success criteria:
-1. [criterion]
-2. [criterion]
-
-[... continue for all phases ...]
-
----
-```
-
-**CRITICAL: Ask for approval before committing:**
-
-Use AskUserQuestion:
-- header: "Roadmap"
-- question: "Does this roadmap structure work for you?"
-- options:
-  - "Approve" — Commit and continue
-  - "Adjust phases" — Tell me what to change
-  - "Review full file" — Show raw ROADMAP.md
-
-**If "Approve":** Continue to commit.
-
-**If "Adjust phases":**
-- Get user's adjustment notes
-- Re-spawn roadmapper with revision context:
-  ```
-  Task(prompt="
-  <revision>
-  User feedback on roadmap:
-  [user's notes]
-
-  Current ROADMAP.md: @.planning/ROADMAP.md
-
-  Update the roadmap based on feedback. Edit files in place.
-  Return ROADMAP REVISED with changes made.
-  </revision>
-  ", subagent_type="spek:roadmapper", model="{roadmapper_model}", description="Revise roadmap")
-  ```
-- Present revised roadmap
-- Loop until user approves
-
-**If "Review full file":** Display raw `cat .planning/ROADMAP.md`, then re-ask.
-
-**Commit roadmap (after approval):**
-
-Check planning config (same pattern as Phase 6).
-
-If committing:
 ```bash
-git add .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
-git commit -m "$(cat <<'EOF'
-docs: create milestone v[X.Y] roadmap ([N] phases)
+# Get first phase number from ROADMAP
+FIRST_PHASE=$(grep "^### Phase [0-9]" .planning/ROADMAP.md | head -1 | grep -o "[0-9]*")
 
-Phases:
-[N]. [phase-name]: [requirements covered]
-[N+1]. [phase-name]: [requirements covered]
-...
+cat > .planning/STATE.md <<EOF
+## Current Position
 
-All milestone requirements mapped to phases.
-EOF
-)"
-```
+Phase: $FIRST_PHASE
+Plan: Not started
+Status: Ready to plan
 
-## Phase 10: Done
+## Milestone
 
-Present completion with next steps:
+v1.0 ${FEATURE}
 
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- SPEK ► MILESTONE INITIALIZED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## Last Action
 
-**Milestone v[X.Y]: [Name]**
+\$(date '+%Y-%m-%d %H:%M'): Roadmap created from specs/${FEATURE}/SPEC.md
 
-| Artifact       | Location                    |
-|----------------|-----------------------------|
-| Project        | `.planning/PROJECT.md`      |
-| Research       | `.planning/research/`       |
-| Requirements   | `.planning/REQUIREMENTS.md` |
-| Roadmap        | `.planning/ROADMAP.md`      |
+## History
 
-**[N] phases** | **[X] requirements** | Ready to build ✓
-
-───────────────────────────────────────────────────────────────
-
-## ▶ Next Up
-
-**Phase [N]: [Phase Name]** — [Goal from ROADMAP.md]
-
-`/spek:discuss-phase [N]` — gather context and clarify approach
-
-<sub>`/clear` first → fresh context window</sub>
+- Roadmap generated from SPEC.md
+- Ready for phase planning
 
 ---
+*Generated by spek:new-milestone*
+EOF
 
-**Also available:**
-- `/spek:plan-phase [N]` — skip discussion, plan directly
-
-───────────────────────────────────────────────────────────────
+echo "✓ Created STATE.md (starting at Phase $FIRST_PHASE)"
 ```
+
+### 8. Commit Everything
+
+```bash
+git add .planning/ specs/
+git commit -m "docs(spek): generate roadmap from ${FEATURE} spec
+
+Created .planning structure and ROADMAP.md from:
+- specs/${FEATURE}/SPEC.md
+
+Milestone: v1.0 ${FEATURE}
+Phases: $(grep -c "^### Phase" .planning/ROADMAP.md)
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+
+echo ""
+echo "✓ Committed roadmap and planning structure"
+```
+
+### 9. Present Summary
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SPEK ► Roadmap Ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Spec:** specs/{feature}/SPEC.md
+**Roadmap:** .planning/ROADMAP.md
+**Phases:** {N} phases
+
+### Phase Breakdown
+
+{List phases with their goals}
+
+───────────────────────────────────────────────────────
+```
+
+### 10. Auto-Route to Execution
+
+```
+## ▶ Ready for Development
+
+Your roadmap is ready! Let's start building.
+```
+
+**Use AskUserQuestion:**
+- header: "Next step"
+- question: "How do you want to proceed?"
+- options:
+  - "Start execution" — Run /spek:go to begin Phase 1 (Recommended)
+  - "Review roadmap first" — I'll check .planning/ROADMAP.md
+  - "Modify roadmap" — I'll edit before starting
+
+If "Start execution" → `Skill(skill: "spek:go")`
+If "Review roadmap first" → Exit with message: "Run /spek:go when ready"
+If "Modify roadmap" → Exit with instructions for manual editing
 
 </process>
 
 <success_criteria>
-- [ ] PROJECT.md updated with Current Milestone section
-- [ ] STATE.md reset for new milestone
-- [ ] MILESTONE-CONTEXT.md consumed and deleted (if existed)
-- [ ] Research completed (if selected) — 4 parallel agents spawned, milestone-aware
-- [ ] Requirements gathered (from research or conversation)
-- [ ] User scoped each category
-- [ ] REQUIREMENTS.md created with REQ-IDs
-- [ ] spek:roadmapper spawned with phase numbering context
-- [ ] Roadmap files written immediately (not draft)
-- [ ] User feedback incorporated (if any)
-- [ ] ROADMAP.md created with phases continuing from previous milestone
-- [ ] All commits made (if planning docs committed)
-- [ ] User knows next step is `/spek:discuss-phase [N]`
-
-**Atomic commits:** Each phase commits its artifacts immediately. If context is lost, artifacts persist.
+- [ ] Found and validated SPEC.md (status: ACTIVE)
+- [ ] Created .planning/ structure
+- [ ] Generated PROJECT.md from SPEC.md
+- [ ] Generated ROADMAP.md with phases from requirements
+- [ ] Created STATE.md with initial position
+- [ ] Committed all files
+- [ ] User knows next step (/spek:go)
 </success_criteria>
