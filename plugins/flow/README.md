@@ -69,11 +69,17 @@ Each spec has:
 - `/flow:execute <feature>` - Dependency-driven execution
 - `/flow:verify <feature>` - Goal-backward verification
 
-### Quick Mode
+### Alternative Entry Points
 - `/flow:quick "description"` - Small changes without full ceremony
   - Maintains spec integrity (prevents drift)
   - Uses test heuristic for recommendations
   - Lightweight (no discussion/planning phases)
+
+- `/flow:derive-spec <code-path>` - Create spec from existing code
+  - Analyzes code, tests, git history
+  - Collaborative questioning to fill gaps
+  - Brings legacy code into Flow workflow
+  - Creates SPEC.md with status: IMPLEMENTED
 
 ### Support Commands
 - `/flow:status <feature>` - Show progress and dependencies

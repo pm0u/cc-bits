@@ -15,10 +15,11 @@
 - ✅ `/flow:plan` - Planning with auto-research
 - ✅ `/flow:execute` - Dependency-driven execution
 
-**Advanced Features (Tasks #6-8)**
+**Advanced Features (Tasks #6-9)**
 - ✅ Cascade update system
 - ✅ Dependency resolution and execution ordering
 - ✅ `/flow:quick` - Quick changes with spec integrity
+- ✅ `/flow:derive-spec` - Create specs from existing code
 
 ### 📋 Future Enhancements
 
@@ -118,6 +119,14 @@ All 7 core tasks completed:
 - Prevents spec drift while staying lightweight
 - Updates spec metadata (Files/Tests sections)
 
+**Task #9: Derive Spec**
+- `/flow:derive-spec` command for existing code
+- Analyzes code structure, tests, and git history
+- Collaborative questioning to fill gaps (why decisions were made)
+- Creates SPEC.md with status: IMPLEMENTED
+- Brings legacy code into Flow workflow
+- Preserves tribal knowledge from commits
+
 ## Questions to Resolve
 
 - [ ] How deep should dependency graph visualization go?
@@ -144,7 +153,8 @@ plugins/flow/
 │   │   ├── plan.md                       # Planning orchestration
 │   │   ├── execute.md                    # Execution orchestration
 │   │   ├── cascade-update.md             # Cascade update logic
-│   │   └── quick.md                      # Quick change workflow
+│   │   ├── quick.md                      # Quick change workflow
+│   │   └── derive-spec.md                # Derive spec from code workflow
 │   └── templates/
 │       └── SPEC.md                       # SPEC.md template
 ├── agents/
@@ -158,6 +168,7 @@ plugins/flow/
     ├── execute/SKILL.md                  # /flow:execute command
     ├── cascade/SKILL.md                  # /flow:cascade command
     ├── quick/SKILL.md                    # /flow:quick command
+    ├── derive-spec/SKILL.md              # /flow:derive-spec command
     └── status/SKILL.md                   # /flow:status command
 ```
 
