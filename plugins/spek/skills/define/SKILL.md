@@ -62,12 +62,13 @@ if [[ "$INPUT" == @* ]]; then
 else
   CONTENT="$INPUT"
 fi
+```
 
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo " SPEK ► Define"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
+Output to user:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SPEK ► Define
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 ### 2. Extract Feature Name
@@ -80,10 +81,9 @@ FEATURE_NAME=$(echo "$CONTENT" | head -5 | tr '[:upper:]' '[:lower:]' | sed 's/[
 
 # Clean up
 FEATURE_NAME=$(echo "$FEATURE_NAME" | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
-
-echo "Feature: $FEATURE_NAME"
-echo ""
 ```
+
+Output extracted feature name to user.
 
 **Present to user via AskUserQuestion:**
 - header: "Feature name"
@@ -178,21 +178,16 @@ Store selected areas in array: SELECTED_AREAS
 
 For each area in SELECTED_AREAS:
 
-```bash
-AREA_NAME="$selected_area"
-
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo " SPEK ► $AREA_NAME"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-
-# Ask 4 questions specific to this area
-# Generate questions dynamically based on area and content
-
-# Present concrete options, include "You decide" when reasonable
-# Build on previous answers (adaptive, not scripted)
+Output section header to user:
 ```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SPEK ► {AREA_NAME}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Ask 4 questions specific to this area. Generate questions dynamically based on area and content.
+
+Present concrete options, include "You decide" when reasonable. Build on previous answers (adaptive, not scripted).
 
 **Question design principles:**
 - Present concrete options to react to (not fully open-ended)
