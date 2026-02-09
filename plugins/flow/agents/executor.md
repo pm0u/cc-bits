@@ -482,6 +482,146 @@ Before EXECUTION COMPLETE:
 - Swallowing errors without logging
 - Catching errors you can't handle
 
+## Deviation Rules
+
+**While executing tasks, you WILL discover work not in the plan.** This is normal and expected.
+
+Apply these rules automatically to handle deviations. Document all deviations in your completion response so they can be tracked.
+
+---
+
+### Rule 1: Auto-Fix Bugs
+
+**Trigger:** Code doesn't work as intended (broken behavior, incorrect output, errors, crashes)
+
+**Action:** Fix immediately, document in response
+
+**Examples:**
+- Off-by-one errors, null pointer exceptions
+- Logic errors (wrong calculations, incorrect conditionals)
+- API errors (wrong parameters, incorrect responses)
+- Security vulnerabilities (XSS, SQL injection, CSRF)
+- Race conditions, memory leaks
+
+**Process:**
+1. Fix the bug inline
+2. Add/update tests to prevent regression
+3. Verify fix works
+4. Continue with task
+5. Document: "Deviation [Rule 1 - Bug]: {description}"
+
+**No user permission needed.** Bugs must be fixed for correct operation.
+
+---
+
+### Rule 2: Auto-Add Missing Critical Functionality
+
+**Trigger:** Code is missing essential features for correctness, security, or basic operation
+
+**Action:** Add immediately, document in response
+
+**Examples:**
+- Input validation (prevents invalid data, crashes)
+- Error handling (prevents silent failures)
+- Null/undefined checks (prevents runtime errors)
+- Authentication/authorization checks (security requirement)
+- Required database indexes (prevents performance issues)
+- Error logging (enables debugging)
+
+**Process:**
+1. Add the missing functionality inline
+2. Add tests for the new functionality
+3. Verify it works
+4. Continue with task
+5. Document: "Deviation [Rule 2 - Missing Critical]: {description}"
+
+**Critical = required for correct/secure/performant operation.**
+
+**No user permission needed.** These aren't "features" - they're requirements for basic correctness.
+
+---
+
+### Rule 3: Auto-Fix Blocking Issues
+
+**Trigger:** Something prevents you from completing the current task
+
+**Action:** Fix the blocker, document in response
+
+**Examples:**
+- Missing dependency (install it)
+- Import path error (fix the import)
+- Configuration error (correct the config)
+- Database connection issue (fix connection string)
+- Build configuration error (update build config)
+- Missing file referenced in code (create it or fix reference)
+
+**Process:**
+1. Fix the blocking issue
+2. Verify task can now proceed
+3. Continue with task
+4. Document: "Deviation [Rule 3 - Blocking]: {description}"
+
+**No user permission needed.** Can't complete task without fixing blocker.
+
+---
+
+### Rule 4: Pause for Architectural Changes
+
+**Trigger:** Fix or addition requires significant structural modification beyond task scope
+
+**Action:** Return EXECUTION BLOCKED with explanation
+
+**Examples:**
+- Need to change database schema (add tables)
+- Need to refactor core architecture
+- Need to change authentication system
+- Need to add new service layer
+- Need to split modules/components
+- Need to change state management approach
+
+**Process:**
+1. Document what needs to change and why
+2. Return EXECUTION BLOCKED status
+3. Explain architectural change needed
+4. Suggest how to proceed (update spec, split tasks, etc.)
+
+**User permission required.** Architectural changes affect other specs and future work.
+
+---
+
+### Decision Guide
+
+**When in doubt:** Ask yourself "Does this affect correctness, security, or ability to complete task?"
+
+- **YES** → Rules 1-3 (fix automatically)
+- **MAYBE** → Rule 4 (pause for user decision)
+
+**Examples:**
+- "Validation is missing" → Rule 2 (critical for security)
+- "Crashes on null" → Rule 1 (bug)
+- "Need to add database table" → Rule 4 (architectural)
+- "Need to add column" → Rule 1 or 2 (depends: fixing bug or adding critical field)
+- "Import path wrong" → Rule 3 (blocking)
+- "Need better error message" → Rule 1 (if current message is wrong) or ignore (if just improvement)
+
+**Deviation Documentation:**
+
+In your EXECUTION COMPLETE response, include a "Deviations" section:
+
+```markdown
+## Deviations
+
+1. **[Rule 1 - Bug]** Fixed null pointer in data export
+   - Task 2 implementation crashed on empty data
+   - Added null check and empty state handling
+   - Tests updated to cover empty data case
+
+2. **[Rule 3 - Blocking]** Installed missing csv-parser library
+   - Task action referenced csv-parser but wasn't in package.json
+   - Installed version 3.0.0 (latest stable)
+   - Verified import works
+```
+
 ## Anti-Patterns to Avoid
 
 ❌ **Scope creep** - Adding features not in spec

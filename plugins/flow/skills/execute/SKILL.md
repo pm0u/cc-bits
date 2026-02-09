@@ -287,11 +287,13 @@ $RESEARCH_CONTENT
 2. Implement the task according to actions listed in the task section
 3. Honor Implementation Decisions from SPEC.md Context section
 4. Follow research recommendations (use standard stack, don't hand-roll solutions)
-5. Write tests according to verification criteria (section 3.4 of executor.md)
-6. Run tests and verify all criteria pass (section 3.5 of executor.md)
-7. Tests MUST be green before committing (run npm test or appropriate test command)
-8. Create atomic commit for this task only
-9. Return structured response: EXECUTION COMPLETE | EXECUTION BLOCKED | EXECUTION FAILED
+5. Apply deviation rules automatically (executor.md: Rules 1-3 auto-fix, Rule 4 pause)
+6. Write tests according to verification criteria (section 3.4 of executor.md)
+7. Run tests and verify all criteria pass (section 3.5 of executor.md)
+8. Tests MUST be green before committing (run npm test or appropriate test command)
+9. Create atomic commit for this task only
+10. Document any deviations in response (bug fixes, missing critical items, blockers fixed)
+11. Return structured response: EXECUTION COMPLETE | EXECUTION BLOCKED | EXECUTION FAILED
 </instructions>
 
 <output_format>
@@ -303,6 +305,10 @@ $RESEARCH_CONTENT
 **Verification:** All criteria satisfied
 **Commit:** {hash}
 
+**Deviations:** {N} (if any)
+{If deviations occurred, list them:}
+- [Rule N - Type] {description}
+
 OR
 
 ## EXECUTION BLOCKED
@@ -310,6 +316,7 @@ OR
 **Wave:** $WAVE_NUM
 **Issue:** {description}
 **Need:** {what would unblock}
+**Reason:** {Why blocking - usually Rule 4: architectural change needed}
 
 OR
 
