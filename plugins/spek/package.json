@@ -1,14 +1,16 @@
 {
   "name": "spek",
-  "version": "1.2.3",
-  "description": "A meta-prompting, context engineering and spec-driven development system for Claude Code.",
+  "version": "2.0.0-alpha.1",
+  "description": "Spec-driven development with triangle validation (SPEC ↔ tests ↔ code) and proven FUCKIT orchestration.",
   "keywords": [
     "claude",
     "claude-code",
     "ai",
-    "meta-prompting",
-    "context-engineering",
-    "spec-driven-development"
+    "spec-driven-development",
+    "triangle-validation",
+    "tdd",
+    "sendit",
+    "fuckit"
   ],
   "author": "",
   "license": "MIT"

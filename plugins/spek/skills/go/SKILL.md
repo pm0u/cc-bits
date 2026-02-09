@@ -1,186 +1,396 @@
 ---
 name: spek:go
-description: Automatically determine and execute the next action based on project state. Smart router that just does the right thing.
+description: Spec-driven development workflow - create SPEC.md, validate triangle, execute with atomic commits
+argument-hint: '"feature description"'
 allowed-tools:
   - Read
+  - Write
+  - Edit
   - Bash
   - Grep
   - Glob
-  - Skill
+  - Task
   - AskUserQuestion
 ---
 
-<objective>
-Analyze project state and automatically invoke the appropriate next command. This is the "just continue" command - no need to remember which skill to run.
+# Spek: Go (Spec-Driven)
 
-Unlike `/spek:progress` which shows status and suggests commands, `/spek:go` determines and executes the next action directly.
-</objective>
+Single entry point for spec-driven development. Creates/updates SPEC.md, validates the spec ↔ tests ↔ code triangle, executes with full spek orchestration.
+
+## References
+
+@~/.claude/plugins/marketplaces/spek/spek/references/spec-format.md
+@~/.claude/plugins/marketplaces/spek/spek/references/triangle-validation.md
+
+## Core Principle
+
+**The spec triangle drives everything:**
+
+```
+        SPEC.md
+       /       \
+      /         \
+   Tests ←────→ Code
+```
+
+- SPEC.md defines behavior (acceptance criteria)
+- Tests verify the spec
+- Code implements to pass tests
+- Triangle must stay consistent
+
+## Process
 
 <process>
 
-<step name="verify">
-**Verify planning structure exists:**
+### 1. Quick Assessment
 
 ```bash
-test -d .planning && echo "exists" || echo "missing"
+TASK_DESC="$1"
+
+# Check if specs directory exists
+if [ ! -d "specs" ]; then
+  mkdir -p specs
+  echo "Created specs/ directory"
+fi
+
+# Extract feature name from description (simple heuristic)
+# User can provide "auth" or "add authentication" or "auth/oauth"
+FEATURE=$(echo "$TASK_DESC" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9\/]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo " SPEK ► Spec-Driven Workflow"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "Feature: $FEATURE"
+echo "Task: $TASK_DESC"
+echo ""
+
+# Check if spec exists
+SPEC_PATH="specs/${FEATURE}/SPEC.md"
+SPEC_EXISTS=false
+
+if [ -f "$SPEC_PATH" ]; then
+  SPEC_EXISTS=true
+  STATUS=$(grep "^status:" "$SPEC_PATH" | awk '{print $2}')
+  echo "Spec exists: $SPEC_PATH (status: $STATUS)"
+else
+  echo "New spec: will create $SPEC_PATH"
+fi
+
+echo ""
 ```
 
-If no `.planning/` directory:
-
-```
-No project found. Starting new project...
-```
-
-Then invoke: `Skill(skill: "spek:new-project")`
-
-Exit after invoking.
-</step>
-
-<step name="analyze_state">
-**Load and analyze project state:**
+### 2. Preflight Check
 
 ```bash
-# Check what exists
-test -f .planning/STATE.md && echo "state:yes" || echo "state:no"
-test -f .planning/ROADMAP.md && echo "roadmap:yes" || echo "roadmap:no"
-test -f .planning/PROJECT.md && echo "project:yes" || echo "project:no"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo " PREFLIGHT: Checking for conflicts"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
 ```
 
-**Missing STATE.md or PROJECT.md:**
+Task(
+  prompt="Run preflight check for feature: $FEATURE
 
-```
-Project incomplete. Starting initialization...
-```
+TASK: $TASK_DESC
+SPEC_PATH: $SPEC_PATH
+SPEC_EXISTS: $SPEC_EXISTS
 
-Invoke: `Skill(skill: "spek:new-project")`
+<instructions>
+Check for conflicts with existing specs or OPEN items.
 
-**Missing ROADMAP.md but PROJECT.md exists:**
+If spec exists:
+- Read $SPEC_PATH
+- Check for OPEN items
+- Check if task conflicts with existing requirements or decisions
 
-Between milestones. Invoke: `Skill(skill: "spek:new-milestone")`
-</step>
+If spec doesn't exist:
+- Check for related specs in specs/ directory
+- Flag potential conflicts
 
-<step name="determine_position">
-**Parse current position from STATE.md:**
+Return:
+## PREFLIGHT CLEAR
+(if no conflicts)
+
+OR
+
+## PREFLIGHT CONFLICT
+**Issue:** {description}
+**Resolution:** {what needs to happen}
+</instructions>
+",
+  subagent_type="spek:spec-enforcer",
+  model="sonnet",
+  description="Preflight check for $FEATURE"
+)
 
 ```bash
-# Get current phase from STATE.md
-grep -E "^Phase:" .planning/STATE.md | head -1
+# Check preflight result
+if grep -q "## PREFLIGHT CONFLICT" <<< "$PREFLIGHT_OUTPUT"; then
+  echo "✗ Conflicts detected"
+  echo ""
+  echo "$PREFLIGHT_OUTPUT"
+  echo ""
+  echo "Resolve conflicts before continuing"
+  exit 1
+fi
+
+echo "✓ Preflight clear - no conflicts"
+echo ""
 ```
 
-**Find current phase directory:**
+### 3. Spec Engagement
 
 ```bash
-# Extract phase number and find directory
-PHASE_NUM=$(grep -E "^Phase:" .planning/STATE.md | grep -oE "[0-9]+" | head -1)
-PHASE_DIR=$(ls -d .planning/phases/${PHASE_NUM}-* .planning/phases/0${PHASE_NUM}-* 2>/dev/null | head -1)
-echo "phase_dir:$PHASE_DIR"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo " SPEC: Creating/updating SPEC.md"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Ensure feature directory exists
+mkdir -p "specs/${FEATURE}"
+
+if [ "$SPEC_EXISTS" = "false" ]; then
+  # Create new spec from template
+  TEMPLATE=$(cat ~/.claude/plugins/marketplaces/spek/spek/templates/spec.md)
+
+  # Simple template substitution
+  echo "$TEMPLATE" | sed "s/{Feature Name}/${FEATURE}/g" > "$SPEC_PATH"
+
+  echo "Created $SPEC_PATH from template"
+  echo ""
+  echo "TODO: Fill in SPEC.md with:"
+  echo "  - Requirements (must-have, should-have, won't-have)"
+  echo "  - Acceptance Criteria (testable conditions)"
+  echo "  - Design Decisions (constraints and choices)"
+  echo ""
+  echo "For MVP, adding basic structure based on task..."
+  echo ""
+
+  # Add basic requirement from task description
+  cat >> "$SPEC_PATH" <<EOF
+
+## Requirements
+
+### Must Have
+- [ ] ${TASK_DESC}
+
+## Acceptance Criteria
+
+- [ ] Implementation complete and tested
+- [ ] No regressions in existing functionality
+
+## Design Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| (to be filled) | (to be filled) | (to be filled) |
+EOF
+
+  echo "✓ Basic SPEC.md created"
+  SPEC_CHANGED=true
+else
+  echo "Spec exists - keeping current version"
+  echo "(Manual updates can be made before execution)"
+  SPEC_CHANGED=false
+fi
+
+echo ""
 ```
 
-**Count plans and summaries:**
+### 4. Write Tests
 
 ```bash
-# In current phase
-PLAN_COUNT=$(ls -1 "$PHASE_DIR"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-SUMMARY_COUNT=$(ls -1 "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
-CONTEXT_EXISTS=$(test -f "$PHASE_DIR"/*-CONTEXT.md 2>/dev/null && echo "yes" || echo "no")
-
-echo "plans:$PLAN_COUNT summaries:$SUMMARY_COUNT context:$CONTEXT_EXISTS"
+if [ "$SPEC_CHANGED" = "true" ]; then
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo " TESTS: Deriving from acceptance criteria"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
 ```
 
-**Check for verification gaps:**
+Task(
+  prompt="Write tests for feature: $FEATURE
+
+SPEC: specs/${FEATURE}/SPEC.md
+
+<instructions>
+Read the spec and write failing tests for the acceptance criteria.
+
+1. Read SPEC.md acceptance criteria
+2. Determine test file location (follow project conventions)
+3. Write tests that verify each criterion
+4. Tests should FAIL initially (code doesn't exist yet)
+5. Follow project testing framework (Jest, Vitest, pytest, etc.)
+
+Return:
+## TESTS WRITTEN
+**Files:** {list of test files created}
+**Tests:** {count} tests for {count} criteria
+**Status:** RED (tests fail - expected before implementation)
+</instructions>
+",
+  subagent_type="spek:test-writer",
+  model="sonnet",
+  description="Write tests for $FEATURE"
+)
 
 ```bash
-# Check for VERIFICATION.md with gaps_found status
-grep -l "status: gaps_found" "$PHASE_DIR"/*-VERIFICATION.md 2>/dev/null | wc -l | tr -d ' '
-```
-</step>
-
-<step name="route_and_execute">
-**Route based on state analysis:**
-
-**DECISION TREE:**
-
-```
-1. gaps_found > 0?
-   → YES: Need to plan gap closure
-   → Action: Skill(skill: "spek:plan-phase", args: "{phase} --gaps")
-
-2. summaries < plans?
-   → YES: Unexecuted plans exist
-   → Action: Skill(skill: "spek:execute-phase", args: "{phase}")
-
-3. plans = 0?
-   → YES: Phase not yet planned
-   → Check context:
-     - CONTEXT.md exists: Skill(skill: "spek:plan-phase", args: "{phase}")
-     - No CONTEXT.md: Skill(skill: "spek:discuss-phase", args: "{phase}")
-
-4. summaries = plans AND plans > 0?
-   → YES: Current phase complete
-   → Check if more phases in milestone:
-     - More phases: Route to next phase (go to step 3 with next phase)
-     - No more phases: Skill(skill: "spek:complete-milestone")
+  echo "✓ Tests written"
+  echo ""
+else
+  echo "Skipping test writing (spec unchanged)"
+  echo ""
+fi
 ```
 
-**Before invoking, confirm with user:**
+### 5. Planning
 
-```
-## Next Action
+```bash
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo " PLAN: Breaking down into tasks"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
 
-**{action_description}**
-
-Based on project state:
-- Phase {N}: {status}
-- Plans: {X}/{Y} complete
-{additional context}
-
-Proceeding with: `/spek:{command} {args}`
-
-Press Enter to continue, or type 'skip' to see status instead.
+# Load spec content for planner
+SPEC_CONTENT=$(cat "specs/${FEATURE}/SPEC.md")
 ```
 
-Use AskUserQuestion with options:
-- "Continue" (recommended) - Execute the determined action
-- "Show status" - Run /spek:progress instead
-- "Cancel" - Do nothing
+Task(
+  prompt="Create implementation plan for feature: $FEATURE
 
-**On "Continue":** Invoke the determined Skill
+<spec>
+$SPEC_CONTENT
+</spec>
 
-**On "Show status":** Invoke `Skill(skill: "spek:progress")`
+<instructions>
+Break down the spec into executable tasks.
 
-**On "Cancel":** Exit with message "No action taken."
-</step>
+1. Read SPEC.md requirements and acceptance criteria
+2. Create 3-8 tasks that deliver all requirements
+3. Each task should have clear actions and verification criteria
+4. Consider dependencies and ordering
+5. Write PLAN.md to specs/${FEATURE}/PLAN.md
+
+Use the SPEK plan format (same as current spek/fuckit plans).
+
+Return:
+## PLANNING COMPLETE
+**Plan:** specs/${FEATURE}/PLAN.md
+**Tasks:** {N} tasks
+</instructions>
+",
+  subagent_type="spek:planner",
+  model="opus",
+  description="Plan $FEATURE"
+)
+
+```bash
+echo "✓ Plan created"
+echo ""
+```
+
+### 6. Execution
+
+```bash
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo " EXECUTE: Implementing tasks"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Reuse existing spek:execute-phase logic (or create simplified version)
+# For MVP, just call the existing executor
+
+echo "Delegating to spek executor..."
+echo ""
+echo "Note: For MVP, manually call /spek:execute-phase with the plan"
+echo "      Full integration coming in next version"
+echo ""
+
+# TODO: Full integration - spawn spek:executor for each task
+# For now, user can manually run /spek:execute-phase
+```
+
+### 7. Postflight
+
+```bash
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo " POSTFLIGHT: Validating triangle"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+```
+
+Task(
+  prompt="Validate spec triangle for feature: $FEATURE
+
+SPEC: specs/${FEATURE}/SPEC.md
+MODE: postflight
+
+<instructions>
+Validate the spec ↔ tests ↔ code triangle.
+
+Check three edges:
+1. Spec → Tests: Every acceptance criterion has test coverage
+2. Tests → Code: All tests pass
+3. Code → Spec: Implementation matches spec (no more, no less)
+
+Return:
+## POSTFLIGHT PASS
+(if triangle is valid)
+
+OR
+
+## POSTFLIGHT DRIFT
+**Drift type:** {spec-leads | code-leads | test-gap}
+**Severity:** {CRITICAL | WARNING | INFO}
+**Details:** {description}
+</instructions>
+",
+  subagent_type="spek:spec-enforcer",
+  model="sonnet",
+  description="Postflight validation for $FEATURE"
+)
+
+```bash
+if grep -q "## POSTFLIGHT PASS" <<< "$POSTFLIGHT_OUTPUT"; then
+  echo "✓ Triangle validated - spec ↔ tests ↔ code consistent"
+else
+  echo "⚠ Drift detected"
+  echo ""
+  echo "$POSTFLIGHT_OUTPUT"
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo " SPEK ► Complete"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+```
 
 </process>
 
-<edge_cases>
+## MVP Limitations
 
-**Debug session active:**
-```bash
-ls .planning/debug/*.md 2>/dev/null | grep -v resolved | head -1
-```
-If active debug session exists, ask user:
-- Continue debug session (`/spek:debug`)
-- Ignore and proceed with normal flow
+This is a simplified first version. Current limitations:
 
-**Handoff file exists:**
-```bash
-test -f .planning/.handoff.md && echo "handoff exists"
-```
-If handoff exists, invoke `Skill(skill: "spek:resume-work")` instead.
+1. **No multi-spec trees** - Single spec only
+2. **No complex assessment** - Simple feature name extraction
+3. **Manual execution bridge** - Must call /spek:execute-phase manually (for now)
+4. **Basic spec creation** - Template-based, no questioning session
+5. **No research step** - Coming in next version
 
-**Multiple viable paths:**
-When state is ambiguous (e.g., could verify or continue), prefer forward progress:
-- Execute over verify
-- Plan over discuss
-- But always confirm with user
+## What Works
 
-</edge_cases>
+✓ Spec triangle validation (preflight + postflight)
+✓ Test derivation from acceptance criteria
+✓ Planning from spec
+✓ Reuses proven spek/fuckit orchestration
 
-<success_criteria>
-- [ ] Project state correctly analyzed
-- [ ] Appropriate next action determined
-- [ ] User confirmed before execution
-- [ ] Correct skill invoked with proper arguments
-- [ ] Graceful handling of edge cases
-</success_criteria>
+## Next Steps
+
+After testing MVP:
+- Integrate execution (remove manual step)
+- Add questioning for spec creation
+- Add multi-spec support
+- Add research workflow
+- Add complexity assessment
