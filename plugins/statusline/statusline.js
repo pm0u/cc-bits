@@ -228,7 +228,7 @@ async function main() {
       `\x1b[2m${formatDir(dir)}\x1b[0m`,
     ];
     if (branch) {
-      line1Parts.push(` ${branch}\x1b[0m`);
+      line1Parts.push(`\x1b[2m ${branch}\x1b[0m`);
     }
 
     const lines = [line1Parts.join(" │ ")];
