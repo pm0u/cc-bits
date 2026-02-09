@@ -1,0 +1,27 @@
+{
+  "name": "flow",
+  "version": "0.1.0",
+  "description": "Guided development workflow combining deep discussion with spec-driven implementation",
+  "author": "Paul Mourer",
+  "skills": [
+    "skills/discuss",
+    "skills/plan",
+    "skills/execute",
+    "skills/verify",
+    "skills/status",
+    "skills/spec",
+    "skills/help"
+  ],
+  "agents": [
+    "agents/discusser",
+    "agents/planner",
+    "agents/executor",
+    "agents/researcher",
+    "agents/verifier"
+  ],
+  "marketplace": {
+    "id": "flow",
+    "category": "workflow",
+    "tags": ["workflow", "spec-driven", "guided", "discussion", "planning"]
+  }
+}
