@@ -325,6 +325,94 @@ else
 fi
 
 echo ""
+
+# Goal-backward verification
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo " FLOW ► GOAL VERIFICATION"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "Verifying spec goal achieved (not just tasks completed)..."
+echo ""
+
+# Load context for verifier
+SPEC_CONTENT=$(cat "specs/${FEATURE}/SPEC.md")
+PLAN_CONTENT=$(cat "specs/${FEATURE}/PLAN.md")
+RESEARCH_CONTENT=$(cat "specs/${FEATURE}/RESEARCH.md" 2>/dev/null || echo "")
+```
+
+Task(
+  prompt="Verify spec goal achievement for feature: $FEATURE
+
+<spec>
+$SPEC_CONTENT
+</spec>
+
+<plan>
+$PLAN_CONTENT
+</plan>
+
+<research>
+$RESEARCH_CONTENT
+</research>
+
+<instructions>
+1. Read your role: Follow the flow:verifier agent documentation at ~/.claude/plugins/marketplaces/flow/agents/verifier.md
+2. Extract the spec goal (what should be achieved, not task list)
+3. Establish must-haves: truths, artifacts, key links
+4. Verify each truth: exists, substantive, wired (3-level verification)
+5. Verify artifacts exist and provide claimed functionality
+6. Verify key links (integrations work)
+7. Check test coverage
+8. Create VERIFICATION.md in specs/${FEATURE}/ directory
+9. Return: VERIFICATION COMPLETE with status (VERIFIED/PARTIAL/FAILED)
+</instructions>
+
+<output_format>
+Create specs/${FEATURE}/VERIFICATION.md with your findings
+
+Return summary:
+## VERIFICATION COMPLETE
+**Feature:** $FEATURE
+**Status:** VERIFIED | PARTIAL | FAILED
+**Report:** specs/${FEATURE}/VERIFICATION.md
+**Truths verified:** {N} of {M}
+**Gaps:** {N} (if any)
+
+{If PARTIAL or FAILED, list gaps with impact levels}
+</output_format>
+",
+  subagent_type="flow:verifier",
+  model="sonnet",
+  description="Verify $FEATURE goal achievement"
+)
+
+```bash
+# Check verifier output
+if grep -q "## VERIFICATION COMPLETE" <<< "$VERIFIER_OUTPUT"; then
+  STATUS=$(echo "$VERIFIER_OUTPUT" | grep "Status:" | awk '{print $2}')
+
+  echo "Verification status: $STATUS"
+
+  if [ "$STATUS" = "VERIFIED" ]; then
+    echo "✓ All must-haves verified"
+  elif [ "$STATUS" = "PARTIAL" ]; then
+    echo "⚠ Core functionality exists but has gaps"
+    echo ""
+    echo "$VERIFIER_OUTPUT" | sed -n '/Gaps:/,/^$/p'
+  elif [ "$STATUS" = "FAILED" ]; then
+    echo "✗ Critical functionality missing"
+    echo ""
+    echo "$VERIFIER_OUTPUT"
+    echo ""
+    echo "Fix gaps before marking as IMPLEMENTED"
+    exit 1
+  fi
+
+  echo ""
+else
+  echo "✗ Verification failed to complete"
+  exit 1
+fi
 ```
 
 ### 7. Update SPEC.md
@@ -333,12 +421,14 @@ echo ""
 # Update status
 sed -i 's/^status: ACTIVE/status: IMPLEMENTED/' "specs/${FEATURE}/SPEC.md"
 
-# Commit
+# Commit spec update and verification
 git add "specs/${FEATURE}/SPEC.md"
+git add "specs/${FEATURE}/VERIFICATION.md"
 git commit -m "docs(flow): mark $FEATURE as IMPLEMENTED
 
 All $TOTAL_TASKS tasks completed
 Tests passing
+Verification: $STATUS
 Status: ACTIVE → IMPLEMENTED
 "
 ```
