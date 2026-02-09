@@ -172,56 +172,102 @@ echo "✓ All dependencies satisfied"
 echo ""
 ```
 
-### 4. Parse Plan
+### 4. Parse Plan and Group by Waves
 
 ```bash
-# Extract task count
+# Extract task count and wave info
 TOTAL_TASKS=$(grep -c "^### Task [0-9]" "specs/${FEATURE}/PLAN.md")
+TOTAL_WAVES=$(grep "^\*\*Wave:\*\*" "specs/${FEATURE}/PLAN.md" | awk '{print $2}' | sort -n | tail -1)
 
-echo "Plan: $TOTAL_TASKS tasks"
+echo "Plan: $TOTAL_TASKS tasks across $TOTAL_WAVES waves"
 echo ""
+
+# Load shared context (used by all executors)
+SPEC_CONTENT=$(cat "specs/${FEATURE}/SPEC.md")
+PLAN_CONTENT=$(cat "specs/${FEATURE}/PLAN.md")
+RESEARCH_CONTENT=$(cat "specs/${FEATURE}/RESEARCH.md" 2>/dev/null || echo "")
 ```
 
-### 5. Execute Each Task
+### 5. Execute Tasks by Wave (Parallel Within Wave)
 
 ```bash
-for TASK_NUM in $(seq 1 $TOTAL_TASKS); do
+for WAVE_NUM in $(seq 1 $TOTAL_WAVES); do
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo " FLOW ► TASK $TASK_NUM/$TOTAL_TASKS"
+  echo " FLOW ► WAVE $WAVE_NUM/$TOTAL_WAVES"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
 
-  # Extract task from PLAN.md
-  TASK_START=$(grep -n "^### Task $TASK_NUM:" "specs/${FEATURE}/PLAN.md" | cut -d: -f1)
-  TASK_END=$(grep -n "^### Task $((TASK_NUM + 1)):" "specs/${FEATURE}/PLAN.md" | cut -d: -f1)
+  # Find all tasks in this wave
+  WAVE_TASKS=$(grep -n "^### Task [0-9]" "specs/${FEATURE}/PLAN.md" | while read -r line; do
+    TASK_LINE_NUM=$(echo "$line" | cut -d: -f1)
+    TASK_NUM=$(echo "$line" | sed 's/.*Task \([0-9]*\):.*/\1/')
 
-  if [ -z "$TASK_END" ]; then
-    # Last task - go to end of file
-    TASK_CONTENT=$(sed -n "${TASK_START},\$p" "specs/${FEATURE}/PLAN.md")
-  else
-    TASK_CONTENT=$(sed -n "${TASK_START},$((TASK_END - 1))p" "specs/${FEATURE}/PLAN.md")
+    # Check wave number for this task
+    TASK_WAVE=$(sed -n "${TASK_LINE_NUM},/^---$/p" "specs/${FEATURE}/PLAN.md" | grep "^\*\*Wave:\*\*" | awk '{print $2}')
+
+    if [ "$TASK_WAVE" = "$WAVE_NUM" ]; then
+      echo "$TASK_NUM"
+    fi
+  done)
+
+  WAVE_TASK_COUNT=$(echo "$WAVE_TASKS" | wc -w | xargs)
+
+  if [ "$WAVE_TASK_COUNT" -eq 0 ]; then
+    continue
   fi
 
-  # Display task summary
-  TASK_NAME=$(echo "$TASK_CONTENT" | grep "^### Task" | sed "s/### Task $TASK_NUM: //")
-  echo "Task: $TASK_NAME"
+  echo "Tasks in wave: $WAVE_TASK_COUNT"
   echo ""
 
-  # Load context
-  SPEC_CONTENT=$(cat "specs/${FEATURE}/SPEC.md")
-  PLAN_CONTENT=$(cat "specs/${FEATURE}/PLAN.md")
-  RESEARCH_CONTENT=$(cat "specs/${FEATURE}/RESEARCH.md" 2>/dev/null || echo "")
+  # Extract task content for each task in wave
+  declare -A TASK_CONTENTS
+  declare -A TASK_NAMES
 
-  # Spawn executor agent with inlined context
-  echo "Spawning executor agent..."
+  for TASK_NUM in $WAVE_TASKS; do
+    # Extract task from PLAN.md
+    TASK_START=$(grep -n "^### Task $TASK_NUM:" "specs/${FEATURE}/PLAN.md" | cut -d: -f1)
+    TASK_END=$(grep -n "^### Task $((TASK_NUM + 1)):" "specs/${FEATURE}/PLAN.md" | cut -d: -f1)
+
+    if [ -z "$TASK_END" ]; then
+      # Last task - go to end of file
+      TASK_CONTENT=$(sed -n "${TASK_START},\$p" "specs/${FEATURE}/PLAN.md")
+    else
+      TASK_CONTENT=$(sed -n "${TASK_START},$((TASK_END - 1))p" "specs/${FEATURE}/PLAN.md")
+    fi
+
+    TASK_CONTENTS[$TASK_NUM]="$TASK_CONTENT"
+    TASK_NAMES[$TASK_NUM]=$(echo "$TASK_CONTENT" | grep "^### Task" | sed "s/### Task $TASK_NUM: //")
+
+    echo "  Task $TASK_NUM: ${TASK_NAMES[$TASK_NUM]}"
+  done
+
+  echo ""
+  echo "Spawning executors in parallel..."
+  echo ""
+```
+
+For each task in the wave, spawn executor agent. Multiple Task() calls in single message execute in parallel:
+
+```python
+# Pseudocode showing parallel pattern:
+# for task_num in wave_tasks:
+#   Task(prompt=..., subagent_type="flow:executor", ...)
+# All spawn simultaneously, block until all complete
+```
+
+For now, execute sequentially within wave (parallel execution requires orchestrator enhancement):
+
+```bash
+for TASK_NUM in $WAVE_TASKS; do
+  echo "━━ Task $TASK_NUM: ${TASK_NAMES[$TASK_NUM]}"
   echo ""
 ```
 
 Task(
-  prompt="Execute Task $TASK_NUM of $TOTAL_TASKS for feature: $FEATURE
+  prompt="Execute Task $TASK_NUM of $TOTAL_TASKS (Wave $WAVE_NUM) for feature: $FEATURE
 
 <task>
-$TASK_CONTENT
+${TASK_CONTENTS[$TASK_NUM]}
 </task>
 
 <spec_context>
@@ -251,6 +297,7 @@ $RESEARCH_CONTENT
 <output_format>
 ## EXECUTION COMPLETE
 **Task:** $TASK_NUM - {name}
+**Wave:** $WAVE_NUM
 **Files modified:** {list}
 **Tests:** {status - passed/created}
 **Verification:** All criteria satisfied
@@ -260,6 +307,7 @@ OR
 
 ## EXECUTION BLOCKED
 **Task:** $TASK_NUM - {name}
+**Wave:** $WAVE_NUM
 **Issue:** {description}
 **Need:** {what would unblock}
 
@@ -267,13 +315,14 @@ OR
 
 ## EXECUTION FAILED
 **Task:** $TASK_NUM - {name}
+**Wave:** $WAVE_NUM
 **Error:** {error message}
 **Attempts:** {N}
 </output_format>
 ",
   subagent_type="flow:executor",
   model="sonnet",
-  description="Execute task $TASK_NUM: $TASK_NAME"
+  description="Execute task $TASK_NUM: ${TASK_NAMES[$TASK_NUM]}"
 )
 
 ```bash
@@ -302,6 +351,11 @@ OR
     echo "Execution failed. Review errors and restart."
     exit 1
   fi
+done
+
+echo ""
+echo "✓ Wave $WAVE_NUM complete"
+echo ""
 done
 ```
 
