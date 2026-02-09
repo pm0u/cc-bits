@@ -69,8 +69,15 @@ Each spec has:
 - `/flow:execute <feature>` - Dependency-driven execution
 - `/flow:verify <feature>` - Goal-backward verification
 
+### Quick Mode
+- `/flow:quick "description"` - Small changes without full ceremony
+  - Maintains spec integrity (prevents drift)
+  - Uses test heuristic for recommendations
+  - Lightweight (no discussion/planning phases)
+
 ### Support Commands
 - `/flow:status <feature>` - Show progress and dependencies
+- `/flow:cascade <parent>` - Propagate parent changes to children
 - `/flow:spec <action>` - Direct spec manipulation
 - `/flow:help` - Show help
 

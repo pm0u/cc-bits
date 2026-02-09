@@ -2,7 +2,7 @@
 
 ## Current Progress
 
-### ✅ Completed - All Core Tasks Done!
+### ✅ Completed - All Tasks Done!
 
 **Foundation (Tasks #1-2)**
 - ✅ Plugin structure created
@@ -15,9 +15,10 @@
 - ✅ `/flow:plan` - Planning with auto-research
 - ✅ `/flow:execute` - Dependency-driven execution
 
-**Advanced Features (Tasks #6-7)**
+**Advanced Features (Tasks #6-8)**
 - ✅ Cascade update system
 - ✅ Dependency resolution and execution ordering
+- ✅ `/flow:quick` - Quick changes with spec integrity
 
 ### 📋 Future Enhancements
 
@@ -109,6 +110,14 @@ All 7 core tasks completed:
 - Circular dependency detection
 - Shell utility library (dependencies.sh)
 
+**Task #8: Quick Mode**
+- `/flow:quick` command for small changes
+- Test heuristic for spec update recommendations
+- Intelligent analysis (bug fix vs enhancement vs design change)
+- Decision gate with user control
+- Prevents spec drift while staying lightweight
+- Updates spec metadata (Files/Tests sections)
+
 ## Questions to Resolve
 
 - [ ] How deep should dependency graph visualization go?
@@ -134,7 +143,8 @@ plugins/flow/
 │   │   ├── discuss.md                    # Discussion orchestration
 │   │   ├── plan.md                       # Planning orchestration
 │   │   ├── execute.md                    # Execution orchestration
-│   │   └── cascade-update.md             # Cascade update logic
+│   │   ├── cascade-update.md             # Cascade update logic
+│   │   └── quick.md                      # Quick change workflow
 │   └── templates/
 │       └── SPEC.md                       # SPEC.md template
 ├── agents/
@@ -147,6 +157,7 @@ plugins/flow/
     ├── plan/SKILL.md                     # /flow:plan command
     ├── execute/SKILL.md                  # /flow:execute command
     ├── cascade/SKILL.md                  # /flow:cascade command
+    ├── quick/SKILL.md                    # /flow:quick command
     └── status/SKILL.md                   # /flow:status command
 ```
 
