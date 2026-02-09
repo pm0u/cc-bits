@@ -224,30 +224,31 @@ async function main() {
 
     const lines = [line1Parts.join(' │ ')];
 
-    // Line 2: context (always shown if available)
+    // Line 2: context │ usage limits (all on one line)
+    const line2Parts = [];
+
     if (ctxBar) {
-      lines.push(ctxBar);
+      line2Parts.push(ctxBar);
     }
 
-    // Line 3: usage limits (only if they exist)
     if (hasUsageLimits) {
-      const line3Parts = [];
-
       if (usage.five_hour) {
         const sessionPct = usage.five_hour.utilization || 0;
         const sessionBar = createProgressBar(sessionPct, '5h');
         const sessionReset = formatResetTime(usage.five_hour.resets_at);
-        line3Parts.push(`${sessionBar} ${sessionReset}`);
+        line2Parts.push(`${sessionBar} ${sessionReset}`);
       }
 
       if (usage.seven_day) {
         const weeklyPct = usage.seven_day.utilization || 0;
         const weeklyBar = createProgressBar(weeklyPct, '7d');
         const weeklyReset = formatResetTime(usage.seven_day.resets_at);
-        line3Parts.push(`${weeklyBar} ${weeklyReset}`);
+        line2Parts.push(`${weeklyBar} ${weeklyReset}`);
       }
+    }
 
-      lines.push(line3Parts.join(' │ '));
+    if (line2Parts.length > 0) {
+      lines.push(line2Parts.join(' │ '));
     }
 
     process.stdout.write(lines.join('\n'));
