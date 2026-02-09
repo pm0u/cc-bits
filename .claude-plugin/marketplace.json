@@ -30,6 +30,11 @@
       "description": "Flow - Guided development combining FUCKIT's deep discussion with SENDIT's spec-driven clarity"
     },
     {
+      "name": "spek",
+      "source": "./plugins/spek",
+      "description": "Spec-driven development with triangle validation (SPEC ↔ tests ↔ code) and proven FUCKIT orchestration."
+    },
+    {
       "name": "statusline",
       "source": "./plugins/statusline",
       "description": "Enhanced statusline showing model, directory, context usage, and API rate limits"
