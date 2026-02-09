@@ -289,6 +289,13 @@ For now, execute sequentially within wave (parallel execution requires orchestra
 ```bash
 for TASK_NUM in $WAVE_TASKS; do
   echo "━━ Task $TASK_NUM: ${TASK_NAMES[$TASK_NUM]}"
+
+  # Check if task uses TDD mode
+  TASK_TDD=$(echo "${TASK_CONTENTS[$TASK_NUM]}" | grep "^\*\*TDD:\*\*" | awk '{print $2}')
+  if [ "$TASK_TDD" = "true" ]; then
+    echo "   Mode: TDD (RED-GREEN-REFACTOR)"
+  fi
+
   echo ""
 ```
 
@@ -313,16 +320,17 @@ $RESEARCH_CONTENT
 
 <instructions>
 1. Read your role: Follow the flow:executor agent documentation at ~/.claude/plugins/marketplaces/flow/agents/executor.md
-2. Implement the task according to actions listed in the task section
-3. Honor Implementation Decisions from SPEC.md Context section
-4. Follow research recommendations (use standard stack, don't hand-roll solutions)
-5. Apply deviation rules automatically (executor.md: Rules 1-3 auto-fix, Rule 4 pause)
-6. Write tests according to verification criteria (section 3.4 of executor.md)
-7. Run tests and verify all criteria pass (section 3.5 of executor.md)
-8. Tests MUST be green before committing (run npm test or appropriate test command)
-9. Create atomic commit for this task only
-10. Document any deviations in response (bug fixes, missing critical items, blockers fixed)
-11. Return structured response: EXECUTION COMPLETE | EXECUTION BLOCKED | EXECUTION FAILED
+2. Check task TDD field: if \"TDD: true\", follow TDD Mode section (RED-GREEN-REFACTOR cycle)
+3. If TDD mode: Write failing test first (RED), implement to pass (GREEN), optionally refactor
+4. If standard mode: Implement task according to actions listed
+5. Honor Implementation Decisions from SPEC.md Context section
+6. Follow research recommendations (use standard stack, don't hand-roll solutions)
+7. Apply deviation rules automatically (executor.md: Rules 1-3 auto-fix, Rule 4 pause)
+8. Write/run tests according to verification criteria (section 3.4 of executor.md)
+9. Tests MUST be green before committing (run npm test or appropriate test command)
+10. Create atomic commits: TDD mode = 2-3 commits (RED, GREEN, REFACTOR), standard mode = 1 commit
+11. Document any deviations in response (bug fixes, missing critical items, blockers fixed)
+12. Return structured response: EXECUTION COMPLETE | EXECUTION BLOCKED | EXECUTION FAILED
 </instructions>
 
 <output_format>

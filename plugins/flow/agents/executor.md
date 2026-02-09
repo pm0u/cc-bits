@@ -235,6 +235,157 @@ Track progress in PROGRESS.md (temporary file):
 
 **Started:** {timestamp}
 **Current:** Task {N}/{Total}
+```
+
+## TDD Mode (Test-Driven Development)
+
+**When to use TDD:**
+- Task involves testable business logic (algorithms, transformations, validation)
+- Behavior can be specified as input → expected output
+- Task marked with `TDD: true` in PLAN.md
+
+**When NOT to use TDD:**
+- UI layout, styling, visual components
+- Configuration changes
+- Simple CRUD with no business logic
+- Glue code connecting components
+
+### TDD Execution Flow
+
+**Instead of standard 3.2-3.6 flow, follow RED-GREEN-REFACTOR:**
+
+**RED PHASE - Write Failing Test:**
+
+1. Create test file following project conventions
+   - `*.test.ts` next to source (if pattern exists)
+   - `__tests__/` directory (if pattern exists)
+   - `tests/` directory at root (fallback)
+
+2. Write test describing expected behavior
+   - Test behavior, not implementation
+   - One concept per test
+   - Descriptive test names
+   - Use project's test framework (Jest, Vitest, pytest, etc.)
+
+3. Run test - it **MUST fail**
+   ```bash
+   npm test           # Node.js
+   pytest             # Python
+   go test ./...      # Go
+   cargo test         # Rust
+   ```
+
+4. If test passes: feature exists or test is wrong → investigate
+
+5. Commit RED phase:
+   ```bash
+   git add {test files}
+   git commit -m "test(flow): add failing test for {feature name}
+
+   Task {N}: {task name}
+
+   - Tests {expected behavior 1}
+   - Tests {expected behavior 2}
+   - Tests {edge cases}
+
+   Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+   ```
+
+**GREEN PHASE - Implement to Pass:**
+
+1. Write **minimal code** to make test pass
+   - No cleverness, no optimization
+   - Just make it work
+   - Follow actions from PLAN.md task
+
+2. Run test - it **MUST pass**
+   ```bash
+   npm test
+   ```
+
+3. Verify all verification criteria from task satisfied
+
+4. Commit GREEN phase:
+   ```bash
+   git add {implementation files}
+   git commit -m "feat(flow): implement {feature name}
+
+   Task {N}: {task name}
+
+   - {Implementation summary}
+   - {What makes test pass}
+   - Tests passing
+
+   Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+   ```
+
+**REFACTOR PHASE (Optional):**
+
+1. Check if obvious improvements exist:
+   - Extract constants/functions
+   - Remove duplication
+   - Improve naming
+   - Simplify logic
+
+2. Run tests - **MUST still pass**
+   ```bash
+   npm test
+   ```
+
+3. Only commit if changes made:
+   ```bash
+   git add {refactored files}
+   git commit -m "refactor(flow): clean up {feature name}
+
+   Task {N}: {task name}
+
+   - {What was refactored}
+   - No behavior changes
+   - Tests still pass
+
+   Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+   ```
+
+**Result:** TDD tasks produce 2-3 commits (RED always, GREEN always, REFACTOR optional)
+
+### TDD Return Format
+
+```markdown
+## EXECUTION COMPLETE (TDD)
+**Task:** {N} - {name}
+**Mode:** TDD (RED-GREEN-REFACTOR)
+**Files modified:** {list}
+**Tests:** Created {N} tests, all passing
+**Verification:** All criteria satisfied
+**Commits:** {N} (RED: {hash}, GREEN: {hash}, REFACTOR: {hash if applicable})
+
+**RED Phase:**
+- Test file: {path}
+- Expected behavior tested: {description}
+- Initial test failure: {error message}
+
+**GREEN Phase:**
+- Implementation: {summary}
+- Test result: All {N} tests passing
+
+**REFACTOR Phase:** {If done, describe changes; if skipped, say "Not needed"}
+```
+
+### TDD Test Quality
+
+**Good tests:**
+- Test behavior, not implementation
+- One concept per test
+- Descriptive names: "should reject empty email", "returns null for invalid ID"
+- No implementation details (test public API only)
+- Survive refactors
+
+**Bad tests:**
+- Test internal state or private methods
+- Multiple assertions for different concepts
+- Generic names: "test1", "works correctly"
+- Mock everything (brittle tests)
+- Tied to implementation details
 
 ## Completed
 - [x] Task 1: Install jsonwebtoken

@@ -309,6 +309,7 @@ autonomous: true
 **Wave:** 1
 **Depends on:** None
 **Estimated time:** 30min - 1hr
+**TDD:** false {or true if task is testable business logic}
 
 **Objective:**
 {What this task accomplishes}
