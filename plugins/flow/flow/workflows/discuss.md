@@ -283,7 +283,34 @@ $([ "$HAS_OPEN" -gt 0 ] && echo "OPEN items: $HAS_OPEN" || echo "Ready for plann
 fi
 ```
 
-### 10. Present Summary
+### 10. Check for Cascade Updates (Parent Specs Only)
+
+If this is a parent spec being updated (not created fresh):
+
+```bash
+if [ "$TYPE" = "parent" ] && [ "$FORCE" = "true" ]; then
+  # Parent spec was re-discussed, check for children
+  CHILDREN=$(find "specs/${FEATURE}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+
+  if [ -n "$CHILDREN" ]; then
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo " FLOW ► CASCADE CHECK"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Parent spec updated with children present."
+    echo "Checking if cascade update needed..."
+    echo ""
+
+    # Trigger cascade update workflow
+    /flow:cascade "$FEATURE"
+  fi
+fi
+```
+
+This automatically propagates parent changes to children with conflict detection.
+
+### 11. Present Summary
 
 ```markdown
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -319,7 +346,7 @@ Resolve these to set status: ACTIVE
 ───────────────────────────────────────────────────────
 ```
 
-### 11. Post-Discussion Gate
+### 12. Post-Discussion Gate
 
 **If status == DRAFT (has OPEN items):**
 
