@@ -260,19 +260,70 @@ This allows parallel work and clearer ownership.
   - "No, keep as single spec" — I'll manage the complexity
 
 **If "Yes, create parent + children":**
+
+```bash
+# Store identified children
+CHILDREN=("api" "ui" "data")  # Example - extract from discussion
+
+# Set flag for split scenario
+IS_SPLIT=true
+SPEC_TYPE="parent"
+```
+
 1. Create parent SPEC.md at specs/{feature}/SPEC.md
    - High-level overview
    - Architecture decisions that apply to all children
    - Integration points
-   - Phase structure
+   - Sub-specs list (link to each child)
+   - Phase structure (if applicable)
 
-2. For each identified child:
-   - Recursively invoke: `Skill(skill: "spek:define", args: "{feature}/{child}")`
-   - Each child gets its own discussion session
-   - Children inherit parent architecture decisions
+2. Commit parent SPEC.md
+
+3. **Loop through each child and create their specs:**
+
+```bash
+for CHILD in "${CHILDREN[@]}"; do
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo " Creating child spec: ${FEATURE}/${CHILD}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+```
+
+For each child, recursively invoke spek:define:
+
+```
+Skill(
+  skill: "spek:define",
+  args: "${FEATURE}/${CHILD}",
+  description: "Define ${CHILD} spec"
+)
+```
+
+**IMPORTANT:** Wait for each child to complete before proceeding to next. Do not proceed to auto-routing until ALL children are complete.
+
+4. After ALL children complete, output summary:
+
+```
+## ▶ All Specs Created
+
+Parent: specs/{feature}/SPEC.md
+Children:
+  - specs/{feature}/api/SPEC.md
+  - specs/{feature}/ui/SPEC.md
+  - specs/{feature}/data/SPEC.md
+```
+
+Then proceed to step 9 (Ready Gate) for the parent spec.
 
 **If "No, keep as single spec":**
-- Continue with single SPEC.md
+
+```bash
+IS_SPLIT=false
+SPEC_TYPE="single"
+```
+
+Continue with single SPEC.md (proceed to step 8).
 
 ### 8. Create SPEC.md
 
@@ -441,12 +492,39 @@ echo ""
 
 ### 12. Auto-Route to Development Flow
 
+**Check context:**
+
+```bash
+# If FEATURE contains "/" then this is a child spec (recursive call)
+# Only route to new-milestone from top-level parent or single spec
+
+if [[ "$FEATURE" == *"/"* ]]; then
+  IS_CHILD=true
+else
+  IS_CHILD=false
+fi
+```
+
+**If IS_CHILD == true (recursive call for child spec):**
+
+```
+✓ Child spec complete: specs/${FEATURE}/SPEC.md
+
+Returning to parent spec creation...
+```
+
+Exit and return to parent process. Do NOT auto-route to new-milestone.
+
+**If IS_CHILD == false (top-level call):**
+
+Check status and route based on whether it's ready:
+
 **If status == ACTIVE (ready for development):**
 
 ```
 ## ▶ Ready for Development
 
-Your spec is ready! Proceeding to create development roadmap...
+Your spec${IS_SPLIT ? "s are" : " is"} ready! Proceeding to create development roadmap...
 ```
 
 **Use AskUserQuestion:**
@@ -483,9 +561,11 @@ Exit without routing.
 - [ ] Interactive discussion with AskUserQuestion (multi-select + deep-dive)
 - [ ] Scope guardrail enforced (deferred ideas captured)
 - [ ] Split detection offered (for complex features)
+- [ ] If split: ALL child specs created via recursive calls (loop completes)
 - [ ] SPEC.md created in "base spek state"
 - [ ] All sections populated (Context, Requirements, Acceptance Criteria, etc.)
 - [ ] Status correct (ACTIVE or DRAFT based on OPEN items)
 - [ ] Committed to git
-- [ ] Auto-routed to development flow (if ready)
+- [ ] Auto-routed to development flow (if ready and top-level)
+- [ ] Child specs return to parent without auto-routing
 </success_criteria>
