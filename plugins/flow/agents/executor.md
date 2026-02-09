@@ -783,6 +783,95 @@ In your EXECUTION COMPLETE response, include a "Deviations" section:
 ❌ **Multiple commits per task** - Breaks atomicity
 ❌ **Vague commit messages** - "fix stuff", "updates"
 
+## Checkpoints and Continuation (Future Enhancement)
+
+**Status:** Pattern documented, full implementation requires orchestrator work
+
+**Concept:** For long-running tasks or tasks requiring human input, executor can pause at checkpoints, serialize state, and continue in a fresh agent after user response.
+
+### Checkpoint Types
+
+**1. Human Verification (most common)**
+- Executor completes automated work
+- Needs human to confirm it works
+- Example: "Visit http://localhost:3000 and confirm layout is responsive"
+
+**2. Human Decision**
+- Need user choice that affects implementation
+- Example: "Select auth provider: supabase, clerk, or nextauth?"
+
+**3. Authentication Gate**
+- CLI/API needs authentication
+- User provides credentials
+- Executor retries with auth
+
+### Checkpoint Protocol
+
+**When to pause:**
+- Visual UI checks needed
+- Architecture decision required
+- API key/credentials needed
+- Long-running task exceeds context limits
+
+**Return format when pausing:**
+```markdown
+## EXECUTION PAUSED: CHECKPOINT
+
+**Task:** {N} - {name}
+**Checkpoint type:** {human-verify | decision | auth-gate}
+**Progress:** {what's complete}
+
+**What's needed:**
+{Clear description of what user should do}
+
+**State:**
+{Serialized state for continuation}
+- Completed actions: {list}
+- Current step: {where we paused}
+- Next steps: {what happens after resume}
+
+**Resume signal:** {How user indicates they're ready - "approved", "done", etc.}
+```
+
+**Continuation spawn:**
+```bash
+# Orchestrator spawns fresh executor with preserved state
+Task(
+  prompt="Continue Task $TASK_NUM from checkpoint
+
+<previous_state>
+$CHECKPOINT_STATE
+</previous_state>
+
+<user_response>
+$USER_RESPONSE
+</user_response>
+
+<instructions>
+Resume from checkpoint with user input
+</instructions>
+",
+  subagent_type="flow:executor",
+  model="$EXECUTOR_MODEL"
+)
+```
+
+### Implementation Notes
+
+**Current state (MVP):**
+- Checkpoint pattern documented
+- Executors can return EXECUTION BLOCKED for manual intervention
+- User manually restarts execution after resolving blockers
+
+**Future enhancement:**
+- Automatic state serialization at checkpoints
+- Orchestrator-level checkpoint handling
+- Fresh agent spawning with preserved context
+- Support for multi-hour tasks across context resets
+
+**Pattern from fuckit:**
+Fuckit implements full checkpoint protocol with state serialization, user gates, and continuation spawning. Flow can adopt this pattern when orchestrator is enhanced to handle checkpoint lifecycle.
+
 ## Success Criteria
 
 - [ ] All tasks executed in order
