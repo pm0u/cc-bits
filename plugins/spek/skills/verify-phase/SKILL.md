@@ -350,19 +350,35 @@ Read your role: ~/.claude/agents/spec-enforcer.md
 Validate three edges of the triangle:
 
 **Edge 1: Spec → Tests (Coverage)**
-- Does every acceptance criterion have test coverage?
-- Check test files for keywords from each criterion
-- Report gaps
+- Extract all acceptance criteria from CHILD_SPEC
+- For each criterion, check if corresponding tests exist
+- Search test files for keywords/phrases from criterion
+- Generate coverage report:
+  - "X/Y acceptance criteria have test coverage"
+  - List covered criteria: ✓ Criterion 1 → test_file.test.ts:42
+  - List uncovered criteria: ✗ Criterion 3 (no tests found)
+- **Severity:**
+  - If >80% covered: PASS
+  - If 50-80% covered: WARNING (some gaps)
+  - If <50% covered: CRITICAL (major gaps)
 
 **Edge 2: Tests → Code (All Pass)**
-- Run test suite (npm test, pytest, go test, etc.)
-- Verify all tests GREEN
-- Report failures
+- Run test suite (npm test, pytest, go test, cargo test)
+- Verify all tests GREEN (exit code 0)
+- Report failures with details
+- **Severity:**
+  - All pass: PASS
+  - Any fail: CRITICAL
 
 **Edge 3: Code → Spec (Exact Match)**
 - Does implementation match requirements? (no more, no less)
-- Check for scope creep (extra features)
-- Check for missing requirements
+- Check for scope creep (extra features not in spec)
+- Check for missing requirements (spec says X, code doesn't have it)
+- Compare SUMMARIES against acceptance criteria
+- **Severity:**
+  - Exact match: PASS
+  - Extra features: WARNING (scope creep)
+  - Missing features: CRITICAL (incomplete)
 
 **Also:**
 - Update child SPEC.md Files section if needed

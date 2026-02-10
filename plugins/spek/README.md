@@ -87,10 +87,10 @@ Smart router that reads state and does the right thing:
    - **Preflight check** - validates readiness ✨
    - Execute tasks with atomic commits
    - **Tests must pass before commits** ✨
-   - **Postflight validation** - verifies triangle ✨
 
 3. **Verify** (`/spek:verify-phase`)
    - Goal-backward verification (code delivers what spec promised)
+   - **Postflight triangle validation** - validates spec ↔ tests ↔ code ✨
    - **Updates SPEC.md Files sections** ✨
    - Marks requirements complete
    - Creates gap closure plans if needed
@@ -237,10 +237,53 @@ Create `.planning/config.json` to customize:
 }
 ```
 
-**Model profiles:**
-- `quality` - Opus for planning/execution
-- `balanced` - Sonnet for most operations (default)
-- `budget` - Haiku for checks/validation
+### Model Profiles
+
+**model_profile** (default: "balanced")
+- `quality` - Opus for planning/execution (highest quality, slower, more expensive)
+- `balanced` - Sonnet for most operations (good quality, fast, recommended)
+- `budget` - Haiku for checks/validation (fastest, cheapest, less thorough)
+
+See `spek/references/model-profiles.md` for detailed agent assignments.
+
+### Workflow Toggles
+
+**workflow.research** (default: true)
+- When `false`: Skips research phase before planning
+- Use when: Already know how to implement, want faster iteration
+
+**workflow.plan_check** (default: true)
+- When `false`: Skips plan-checker agent after planning
+- Plans go directly to execution without verification
+- Preflight check still runs before execution
+- Use when: Confident in plans, want faster iteration
+
+**workflow.verifier** (default: true)
+- When `false`: Skips goal-backward verification in verify-phase
+- Triangle validation still runs (cannot be disabled)
+- SPEC.md updates still happen
+- Use when: Quick iterations, trust implementation without deep checks
+
+### What Cannot Be Disabled
+
+These checks **always run** to ensure spec triangle integrity:
+
+✅ **Test derivation** (plan-phase step 9.5)
+- Tests written from acceptance criteria before implementation
+- Cannot be skipped in v3.0 - triangle enforcement requires tests
+
+✅ **Preflight validation** (execute-phase step 3.5)
+- Checks for conflicts before execution starts
+- Validates tests exist and are ready
+
+✅ **Test enforcement** (executor agent)
+- Tests must pass before commits
+- Hard exit code check prevents commits with failing tests
+
+✅ **Postflight triangle validation** (verify-phase step 5)
+- Validates spec ↔ tests ↔ code consistency
+- Checks all three edges with severity levels
+- Cannot be disabled - core triangle guarantee
 
 ## File Structure
 

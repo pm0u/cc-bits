@@ -271,20 +271,31 @@ This helps users understand resource usage and identify heavy plans.
    Check for conflicts before execution starts:
 
    1. **OPEN items:** Does spec have unresolved questions?
+      - Check for "## OPEN" section in CHILD_SPEC
       - If yes → should be resolved before implementation
       - Severity: WARNING (can proceed with caution)
 
    2. **Plan coverage:** Do plans cover all requirements for this phase?
       - Check that plans deliver what spec promises
       - Missing requirements → gap
+      - Severity: CRITICAL if major gaps
 
    3. **File conflicts:** Do any existing files conflict with planned changes?
       - Check files_modified in plans vs current state
       - Uncommitted work → potential conflict
+      - Severity: WARNING (can resolve)
 
    4. **Tests exist:** Are tests in place from plan-phase?
+      - Check for test files in project (*.test.*, *.spec.*, *_test.*)
+      - Check Test Files section in CHILD_SPEC
       - Tests should be RED (failing, ready to turn GREEN)
-      - No tests → triangle can't be enforced
+      - **If NO tests found:**
+        - Severity: CRITICAL (blocker: yes)
+        - Reason: "Cannot enforce spec triangle without tests"
+        - Action: Return to plan-phase to derive tests
+      - **If tests found:**
+        - Run tests to verify they're RED (failing)
+        - If GREEN (passing): Warning "Tests already pass - was code pre-implemented?"
 
    **Output format:**
    ## PREFLIGHT PASS

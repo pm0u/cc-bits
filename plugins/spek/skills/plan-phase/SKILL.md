@@ -483,13 +483,21 @@ Parse output:
 - Proceed to step 10 (plan-checker)
 
 **`## TESTS SKIPPED`:**
-- Display warning: `⚠ No tests written - spec triangle won't be enforced`
-- Proceed to step 10 (plan-checker)
+- Display error: `✗ Tests required for spec triangle enforcement`
+- Explain: "Spek v3.0 requires tests to enforce spec ↔ tests ↔ code triangle"
+- Reason from test-writer: {why tests were skipped}
+- Offer: 1) Add context to help test-writer derive tests, 2) Abort planning
+- Wait for user response
+- If user provides context: Re-spawn test-writer with additional context
+- If abort: Exit with error message
 
 **`## TESTS BLOCKED`:**
 - Display: `✗ Test derivation blocked: {reason}`
-- Offer: 1) Add context for test-writer, 2) Skip tests (not recommended), 3) Abort planning
+- Explain: "Cannot proceed without tests - triangle enforcement requires them"
+- Offer: 1) Add context for test-writer, 2) Abort planning
 - Wait for user response
+- If user provides context: Re-spawn test-writer
+- If abort: Exit with error message
 
 ## 10. Spawn spek:plan-checker Agent
 

@@ -574,8 +574,30 @@ fi
 
 2. **Tests MUST pass:**
 
-- **If tests pass:** Proceed to commit
-- **If tests fail:** DO NOT commit, fix the failure
+```bash
+# Run tests (adapt to project's test framework)
+npm test 2>&1 || pytest 2>&1 || go test ./... 2>&1 || cargo test 2>&1
+
+# Capture exit code
+TEST_EXIT_CODE=$?
+
+# Check if tests passed
+if [ $TEST_EXIT_CODE -ne 0 ]; then
+  echo "✗ Tests failed - cannot commit"
+  echo "Spec triangle requires all tests to pass before commits"
+  echo ""
+  echo "Fix the test failures and try again."
+  echo ""
+
+  # Return blocked status - DO NOT PROCEED TO COMMIT
+  return 1
+fi
+
+echo "✓ All tests passing - ready to commit"
+```
+
+- **If tests pass (exit code 0):** Proceed to commit
+- **If tests fail (exit code non-zero):** DO NOT commit, fix the failure
 - **No skipping tests** - triangle depends on this
 
 3. **Failure handling:**
@@ -584,21 +606,21 @@ If tests fail:
 - Read test output to understand failure
 - Fix the code that caused failure
 - Run tests again
-- Iterate until GREEN
+- Iterate until GREEN (exit code 0)
 - Only then commit
 
-**Exception:** If this is the very first task of a phase and no tests exist yet (test derivation was skipped), document this as a drift warning in SUMMARY.md but allow commit to proceed.
+**Exception:** If this is the very first task of a phase and no test command is detected (no package.json, pytest.ini, go.mod, etc.), document this as "No tests configured in project" in SUMMARY.md. Postflight validation will flag this as triangle drift.
 
 **Why this matters:**
 
 The spec triangle relies on:
 - Tests derived from acceptance criteria (done in plan-phase)
-- Implementation makes tests pass (enforced here)
-- Postflight validates consistency (done in execute-phase)
+- Implementation makes tests pass (enforced here with exit code check)
+- Postflight validates consistency (done in verify-phase)
 
 Breaking this chain breaks the triangle.
 
-**No commits with failing tests.** Period.
+**CRITICAL:** The bash code above with exit code check is MANDATORY. No commits with failing tests. Period.
 </test_enforcement>
 
 <task_commit_protocol>
