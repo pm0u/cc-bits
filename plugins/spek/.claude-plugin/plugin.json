@@ -1,5 +1,5 @@
 {
   "name": "spek",
-  "version": "2.1.1",
-  "description": "Spec-driven development with triangle validation (SPEC ↔ tests ↔ code) and proven FUCKIT orchestration"
+  "version": "3.0.0",
+  "description": "Spec-driven development with enforced triangle validation (SPEC ↔ tests ↔ code) and proven FUCKIT orchestration"
 }

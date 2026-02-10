@@ -735,9 +735,139 @@ _Verified: {timestamp}_
 _Verifier: Claude (spek:verifier)_
 ```
 
+## Update Child SPEC.md Files Section
+
+**CRITICAL:** Keep specs in sync with implementation.
+
+**Find child spec for this phase:**
+
+```bash
+# Extract phase name from phase directory
+PHASE_NAME=$(basename "$PHASE_DIR" | sed "s/^${PHASE_NUM}-//")
+
+# Try to find matching child spec
+PARENT_SPEC=$(find specs -maxdepth 2 -name "SPEC.md" -type f | head -1)
+
+if [ -n "$PARENT_SPEC" ]; then
+  PARENT_DIR=$(dirname "$PARENT_SPEC")
+  CHILD_SPEC=$(find "$PARENT_DIR" -name "SPEC.md" -path "*/${PHASE_NAME}/*" | head -1)
+
+  # If no exact match, use parent spec
+  if [ -z "$CHILD_SPEC" ]; then
+    CHILD_SPEC="$PARENT_SPEC"
+  fi
+fi
+```
+
+**If child spec found:**
+
+1. **Update Files section:**
+
+```bash
+# Collect implementation files from this phase
+IMPL_FILES=$(cat "$PHASE_DIR"/*-SUMMARY.md | grep -E "^\s*-\s+\w+/.+" | sed 's/^\s*-\s*//' | sort -u)
+
+# If spec has "## Files" section
+if grep -q "^## Files" "$CHILD_SPEC"; then
+  # Check if empty (contains only "(Will be populated...)" or similar)
+  FILES_CONTENT=$(sed -n '/^## Files/,/^## /p' "$CHILD_SPEC" | grep -v "^##" | grep -v "^$" | grep -v "populated")
+
+  if [ -z "$FILES_CONTENT" ]; then
+    # Empty - populate it
+    sed -i.bak '/^## Files/,/^## /{
+      /^## Files/a\
+\
+'"$(echo "$IMPL_FILES" | sed 's/^/- /')"'
+\
+      /^$/d
+      /populated/d
+    }' "$CHILD_SPEC"
+  else
+    # Has content - append new files (dedupe)
+    # Read existing, merge with new, dedupe, update
+    EXISTING=$(sed -n '/^## Files/,/^## /p' "$CHILD_SPEC" | grep "^- " | sed 's/^- //')
+    ALL_FILES=$(echo -e "$EXISTING\n$IMPL_FILES" | sort -u)
+
+    # Replace section
+    sed -i.bak '/^## Files/,/^## /{
+      /^## Files/{
+        a\
+'"$(echo "$ALL_FILES" | sed 's/^/- /')"'
+\
+        d
+      }
+      /^- /d
+      /^$/d
+    }' "$CHILD_SPEC"
+  fi
+
+  rm "${CHILD_SPEC}.bak" 2>/dev/null
+fi
+```
+
+2. **Update Test Files section:**
+
+```bash
+# Collect test files from summaries
+TEST_FILES=$(cat "$PHASE_DIR"/*-SUMMARY.md | grep -E "^\s*-\s+.*test.*" | sed 's/^\s*-\s*//' | sort -u)
+
+# Similar logic as Files section
+if grep -q "^## Test Files" "$CHILD_SPEC" && [ -n "$TEST_FILES" ]; then
+  # Update test files section (same pattern as Files)
+fi
+```
+
+3. **Mark requirements complete:**
+
+```bash
+# Find requirements from ROADMAP for this phase
+PHASE_REQS=$(grep -A10 "^### Phase $PHASE_NUM:" .planning/ROADMAP.md | grep "^- " | sed 's/^- //')
+
+# If verification passed, mark requirements complete in spec
+if [ "$STATUS" = "passed" ]; then
+  # For each requirement, change [ ] to [x]
+  for REQ in $PHASE_REQS; do
+    sed -i.bak "s/- \[ \] $REQ/- [x] $REQ/" "$CHILD_SPEC"
+  done
+
+  rm "${CHILD_SPEC}.bak" 2>/dev/null
+fi
+```
+
+4. **Update spec status if appropriate:**
+
+```bash
+# If all requirements in spec are complete, update status to IMPLEMENTED
+if ! grep -q "^- \[ \]" "$CHILD_SPEC" && [ "$STATUS" = "passed" ]; then
+  sed -i.bak 's/^ACTIVE$/IMPLEMENTED/' "$CHILD_SPEC"
+  rm "${CHILD_SPEC}.bak" 2>/dev/null
+fi
+```
+
+5. **Commit spec updates:**
+
+```bash
+git add "$CHILD_SPEC"
+git commit -m "docs(spek): update ${PHASE_NAME} spec with implementation files
+
+- Added ${#IMPL_FILES[@]} implementation files to Files section
+- Added ${#TEST_FILES[@]} test files to Test Files section
+- Marked ${#PHASE_REQS[@]} requirements complete
+
+Phase ${PHASE_NUM} verification: $STATUS
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+```
+
+**If no child spec found:**
+
+Log warning in VERIFICATION.md but continue.
+
 ## Return to Orchestrator
 
-**DO NOT COMMIT.** The orchestrator bundles VERIFICATION.md with other phase artifacts.
+**DO NOT COMMIT VERIFICATION.MD.** The orchestrator bundles VERIFICATION.md with other phase artifacts.
+
+**Spec updates ARE committed** above (separate from VERIFICATION.md).
 
 Return with:
 

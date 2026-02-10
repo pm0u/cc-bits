@@ -123,6 +123,7 @@ Execute each task in the plan.
    - **When you discover additional work not in plan:** Apply deviation rules automatically
    - Run the verification
    - Confirm done criteria met
+   - **Run tests (MANDATORY):** Tests MUST pass before commit (see test_enforcement)
    - **Commit the task** (see task_commit_protocol)
    - Track task completion and commit hash for Summary
    - Continue to next task
@@ -545,6 +546,60 @@ When executing a task with `tdd="true"` attribute, follow RED-GREEN-REFACTOR cyc
 - If test doesn't pass in GREEN phase: Debug, keep iterating until green
 - If tests fail in REFACTOR phase: Undo refactor
   </tdd_execution>
+
+<test_enforcement>
+**CRITICAL: Tests MUST pass before any commit.**
+
+This enforces the spec triangle: spec → tests → code.
+
+**Before every task commit:**
+
+1. **Detect test command:**
+
+```bash
+# Check for test script in package.json
+if [ -f "package.json" ]; then
+  npm test
+elif [ -f "pytest.ini" ] || [ -f "setup.py" ]; then
+  pytest
+elif [ -f "go.mod" ]; then
+  go test ./...
+elif [ -f "Cargo.toml" ]; then
+  cargo test
+else
+  # Look for test files and run appropriate command
+  # or skip if truly no tests exist yet
+fi
+```
+
+2. **Tests MUST pass:**
+
+- **If tests pass:** Proceed to commit
+- **If tests fail:** DO NOT commit, fix the failure
+- **No skipping tests** - triangle depends on this
+
+3. **Failure handling:**
+
+If tests fail:
+- Read test output to understand failure
+- Fix the code that caused failure
+- Run tests again
+- Iterate until GREEN
+- Only then commit
+
+**Exception:** If this is the very first task of a phase and no tests exist yet (test derivation was skipped), document this as a drift warning in SUMMARY.md but allow commit to proceed.
+
+**Why this matters:**
+
+The spec triangle relies on:
+- Tests derived from acceptance criteria (done in plan-phase)
+- Implementation makes tests pass (enforced here)
+- Postflight validates consistency (done in execute-phase)
+
+Breaking this chain breaks the triangle.
+
+**No commits with failing tests.** Period.
+</test_enforcement>
 
 <task_commit_protocol>
 After each task completes (verification passed, done criteria met), commit immediately.

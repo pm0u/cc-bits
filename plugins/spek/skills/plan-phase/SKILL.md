@@ -351,10 +351,7 @@ Parse planner output:
 
 **`## PLANNING COMPLETE`:**
 - Display: `Planner created {N} plan(s). Files on disk.`
-- If `--skip-verify`: Skip to step 13
-- Check config: `WORKFLOW_PLAN_CHECK=$(cat .planning/config.json 2>/dev/null | grep -o '"plan_check"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")`
-- If `workflow.plan_check` is `false`: Skip to step 13
-- Otherwise: Proceed to step 10
+- Proceed to step 9.5 (derive tests)
 
 **`## CHECKPOINT REACHED`:**
 - Present to user, get response, spawn continuation (see step 12)
@@ -364,7 +361,148 @@ Parse planner output:
 - Offer: Add context, Retry, Manual
 - Wait for user response
 
+## 9.5. Derive Tests from Acceptance Criteria
+
+**CRITICAL:** This step enforces the spec triangle by creating tests BEFORE implementation.
+
+Display stage banner:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SPEK ► DERIVING TESTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+◆ Spawning test-writer to derive tests from acceptance criteria...
+```
+
+**Find child spec for this phase:**
+
+```bash
+# Extract phase name from phase directory
+PHASE_NAME=$(basename "$PHASE_DIR" | sed "s/^${PHASE}-//")
+
+# Try to find matching child spec in specs/
+# Look for specs/*/${PHASE_NAME}/SPEC.md or specs/*/SPEC.md
+CHILD_SPEC=""
+
+# Check if we have a parent spec
+PARENT_SPEC=$(find specs -maxdepth 2 -name "SPEC.md" -type f | head -1)
+
+if [ -n "$PARENT_SPEC" ]; then
+  PARENT_DIR=$(dirname "$PARENT_SPEC")
+
+  # Look for child spec matching phase name
+  CHILD_SPEC=$(find "$PARENT_DIR" -name "SPEC.md" -path "*/${PHASE_NAME}/*" | head -1)
+
+  # If no exact match, use parent spec
+  if [ -z "$CHILD_SPEC" ]; then
+    CHILD_SPEC="$PARENT_SPEC"
+  fi
+fi
+```
+
+**Read spec for acceptance criteria:**
+
+```bash
+if [ -n "$CHILD_SPEC" ]; then
+  SPEC_FOR_TESTS=$(cat "$CHILD_SPEC")
+
+  # Extract acceptance criteria section
+  ACCEPTANCE_CRITERIA=$(sed -n '/^## Acceptance Criteria/,/^## /p' "$CHILD_SPEC" | grep -v "^## Acceptance Criteria" | grep -v "^##")
+
+  echo "Using spec: $CHILD_SPEC"
+else
+  echo "No child spec found - using phase goal from ROADMAP"
+  SPEC_FOR_TESTS=$(grep -A10 "^### Phase ${PHASE}:" .planning/ROADMAP.md)
+  ACCEPTANCE_CRITERIA="(derived from phase goal)"
+fi
+```
+
+**Spawn spek:test-writer:**
+
+```markdown
+<test_derivation_context>
+
+**Phase:** {phase_number} - {phase_name}
+
+**Spec:**
+{spec_for_tests}
+
+**Acceptance Criteria:**
+{acceptance_criteria}
+
+**Plans Created:**
+{N} plans with {M} total tasks
+
+</test_derivation_context>
+
+<instructions>
+
+Derive failing tests from acceptance criteria:
+
+1. Read acceptance criteria from spec (Given/When/Then conditions)
+2. Identify testable conditions (each criterion should map to test(s))
+3. Determine test file location (follow project conventions - check existing test files)
+4. Write tests that verify each criterion
+5. Tests should FAIL initially (RED state - code doesn't exist yet)
+6. Use project's test framework (detect from package.json or existing tests)
+7. Update child SPEC.md's "Test Files" section with created test file paths
+
+**Test-Driven Development:**
+- Tests written now, before implementation
+- Executor will run tests during implementation
+- Tests must pass before commits (enforces spec → code link)
+
+**Output format:**
+## TESTS WRITTEN
+**Files:** {list of test files created}
+**Tests:** {count} tests for {count} criteria
+**Status:** RED (expected - code not implemented yet)
+**Coverage:**
+- Criterion 1: test_name_1()
+- Criterion 2: test_name_2()
+...
+
+</instructions>
+```
+
+```
+Task(
+  prompt="First, read ~/.claude/agents/test-writer.md for your role and instructions.\n\n" + test_derivation_prompt,
+  subagent_type="spek:test-writer",
+  model="sonnet",
+  description="Derive tests for Phase {phase}"
+)
+```
+
+**Handle test-writer return:**
+
+Parse output:
+
+**`## TESTS WRITTEN`:**
+- Display: `✓ Tests written: {N} tests for {M} criteria (RED state)`
+- Proceed to step 10 (plan-checker)
+
+**`## TESTS SKIPPED`:**
+- Display warning: `⚠ No tests written - spec triangle won't be enforced`
+- Proceed to step 10 (plan-checker)
+
+**`## TESTS BLOCKED`:**
+- Display: `✗ Test derivation blocked: {reason}`
+- Offer: 1) Add context for test-writer, 2) Skip tests (not recommended), 3) Abort planning
+- Wait for user response
+
 ## 10. Spawn spek:plan-checker Agent
+
+**Check configuration:**
+
+```bash
+# Check if plan verification is enabled
+WORKFLOW_PLAN_CHECK=$(cat .planning/config.json 2>/dev/null | grep -o '"plan_check"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+```
+
+**If `workflow.plan_check` is `false`:** Skip to step 13
+**If `--skip-verify` flag set:** Skip to step 13
+**Otherwise:** Proceed with plan checking
 
 Display:
 ```

@@ -198,6 +198,130 @@ This helps users understand resource usage and identify heavy plans.
    - Group plans by wave number
    - Report wave structure to user
 
+3.5. **Preflight Check (Spec Triangle Validation)**
+
+   Display stage banner:
+   ```
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    SPEK ► PREFLIGHT CHECK
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ◆ Validating readiness before execution...
+   ```
+
+   **Find child spec for this phase:**
+
+   ```bash
+   # Extract phase name from phase directory
+   PHASE_NAME=$(basename "$PHASE_DIR" | sed "s/^${PHASE}-//")
+
+   # Try to find matching child spec
+   PARENT_SPEC=$(find specs -maxdepth 2 -name "SPEC.md" -type f | head -1)
+
+   if [ -n "$PARENT_SPEC" ]; then
+     PARENT_DIR=$(dirname "$PARENT_SPEC")
+     CHILD_SPEC=$(find "$PARENT_DIR" -name "SPEC.md" -path "*/${PHASE_NAME}/*" | head -1)
+
+     # If no exact match, use parent spec
+     if [ -z "$CHILD_SPEC" ]; then
+       CHILD_SPEC="$PARENT_SPEC"
+     fi
+   fi
+   ```
+
+   **Read context for preflight:**
+
+   ```bash
+   # Read spec content
+   if [ -n "$CHILD_SPEC" ]; then
+     SPEC_CONTENT=$(cat "$CHILD_SPEC")
+   else
+     SPEC_CONTENT="(no child spec found)"
+   fi
+
+   # Read all plans for this phase
+   PLANS_CONTENT=$(cat "${PHASE_DIR}"/*-PLAN.md 2>/dev/null)
+
+   # Check for OPEN items in spec
+   OPEN_ITEMS=$(grep -A100 "^## OPEN" "$CHILD_SPEC" 2>/dev/null | grep -v "^##" | head -20)
+   ```
+
+   **Spawn spek:spec-enforcer in preflight mode:**
+
+   ```markdown
+   <preflight_context>
+
+   **Phase:** {phase_number} - {phase_name}
+   **Mode:** preflight
+
+   **Spec:**
+   {spec_content}
+
+   **Plans to Execute:**
+   {N} plans with {M} total tasks
+   {plans_content_summary}
+
+   **OPEN Items (if any):**
+   {open_items}
+
+   </preflight_context>
+
+   <instructions>
+
+   Check for conflicts before execution starts:
+
+   1. **OPEN items:** Does spec have unresolved questions?
+      - If yes → should be resolved before implementation
+      - Severity: WARNING (can proceed with caution)
+
+   2. **Plan coverage:** Do plans cover all requirements for this phase?
+      - Check that plans deliver what spec promises
+      - Missing requirements → gap
+
+   3. **File conflicts:** Do any existing files conflict with planned changes?
+      - Check files_modified in plans vs current state
+      - Uncommitted work → potential conflict
+
+   4. **Tests exist:** Are tests in place from plan-phase?
+      - Tests should be RED (failing, ready to turn GREEN)
+      - No tests → triangle can't be enforced
+
+   **Output format:**
+   ## PREFLIGHT PASS
+   (all checks pass or warnings only)
+
+   OR
+
+   ## PREFLIGHT CONFLICT
+   **Issue:** {description}
+   **Blocker:** {yes/no}
+   **Resolution:** {what to do}
+
+   </instructions>
+   ```
+
+   ```
+   Task(
+     prompt=preflight_prompt,
+     subagent_type="spek:spec-enforcer",
+     model="sonnet",
+     description="Preflight check for Phase {phase}"
+   )
+   ```
+
+   **Handle preflight return:**
+
+   **`## PREFLIGHT PASS`:**
+   - Display: `✓ Preflight passed - ready to execute`
+   - Proceed to step 4 (execute waves)
+
+   **`## PREFLIGHT CONFLICT`:**
+   - Display conflict details
+   - Check if blocker
+   - **If blocker=yes:** Offer: 1) Resolve conflict, 2) Abort execution
+   - **If blocker=no:** Offer: 1) Proceed with caution, 2) Resolve first, 3) Abort
+   - Wait for user response
+
 4. **Execute waves**
    For each wave in order:
    - Spawn `spek:executor` for each plan in wave (parallel Task calls)
@@ -229,16 +353,143 @@ This helps users understand resource usage and identify heavy plans.
 7. **Verify phase goal**
    Check config: `WORKFLOW_VERIFIER=$(cat .planning/config.json 2>/dev/null | grep -o '"verifier"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")`
 
-   **If `workflow.verifier` is `false`:** Skip to step 8 (treat as passed).
+   **If `workflow.verifier` is `false`:** Skip verifier but still run postflight (step 7.5).
 
    **Otherwise:**
    - Spawn `spek:verifier` subagent with phase directory and goal
    - Verifier checks must_haves against actual codebase (not SUMMARY claims)
    - Creates VERIFICATION.md with detailed report
    - Route by status:
-     - `passed` → continue to step 8
+     - `passed` → continue to step 7.5 (postflight)
      - `human_needed` → present items, get approval or feedback
      - `gaps_found` → present gaps, offer `/spek:plan-phase {X} --gaps`
+
+7.5. **Postflight Triangle Validation**
+
+   **CRITICAL:** This validates the spec ↔ tests ↔ code triangle after implementation.
+
+   Display stage banner:
+   ```
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    SPEK ► POSTFLIGHT VALIDATION
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ◆ Validating spec triangle: spec ↔ tests ↔ code...
+   ```
+
+   **Gather context for postflight:**
+
+   ```bash
+   # Get child spec (already found in preflight)
+   if [ -n "$CHILD_SPEC" ]; then
+     SPEC_CONTENT=$(cat "$CHILD_SPEC")
+
+     # Get test files from spec
+     TEST_FILES=$(sed -n '/^## Test Files/,/^## /p' "$CHILD_SPEC" | grep -v "^##" | grep -v "^$")
+
+     # Get implementation files from spec
+     IMPL_FILES=$(sed -n '/^## Files/,/^## /p' "$CHILD_SPEC" | grep -v "^##" | grep -v "^$")
+   fi
+
+   # Get files modified during execution
+   MODIFIED_FILES=$(git diff --name-only HEAD~{N}..HEAD)  # where N = number of commits this phase
+
+   # Get summaries
+   SUMMARIES=$(cat "${PHASE_DIR}"/*-SUMMARY.md 2>/dev/null)
+   ```
+
+   **Spawn spek:spec-enforcer in postflight mode:**
+
+   ```markdown
+   <postflight_context>
+
+   **Phase:** {phase_number} - {phase_name}
+   **Mode:** postflight
+
+   **Spec:**
+   {spec_content}
+
+   **Test Files (from spec):**
+   {test_files}
+
+   **Implementation Files (from spec + git):**
+   {impl_files}
+   {modified_files}
+
+   **Execution Summaries:**
+   {summaries}
+
+   </postflight_context>
+
+   <instructions>
+
+   Validate the three edges of the spec triangle:
+
+   **Edge 1: Spec → Tests (Coverage)**
+   - Does every acceptance criterion have test coverage?
+   - Check test files exist and contain tests for each criterion
+   - List any gaps
+
+   **Edge 2: Tests → Code (All Pass)**
+   - Run test suite (npm test, pytest, etc.)
+   - Verify all tests GREEN
+   - Report any failures
+
+   **Edge 3: Code → Spec (Exact Match)**
+   - Does implementation match requirements? (no more, no less)
+   - Check for scope creep (extra features not in spec)
+   - Check for missing requirements (spec says X, code doesn't have it)
+
+   **Also check:**
+   - Update child SPEC.md "Files" section with implementation file paths
+   - Update child SPEC.md "Test Files" section if not already updated
+   - Mark requirements as complete: `- [x]` in spec
+
+   **Output format:**
+   ## POSTFLIGHT PASS
+   **Triangle:** Valid ✓
+   **Coverage:** {N}/{N} criteria tested
+   **Tests:** GREEN ✓
+   **Scope:** Exact match ✓
+
+   **SPEC.md updates:**
+   - Files section: {N} files added
+   - Test Files section: {M} test files confirmed
+   - Requirements: {K} marked complete
+
+   OR
+
+   ## POSTFLIGHT DRIFT
+   **Edge:** {spec-leads | code-leads | test-gap}
+   **Severity:** {CRITICAL | WARNING}
+   **Details:** {description}
+   **Fix:** {what needs to happen}
+
+   </instructions>
+   ```
+
+   ```
+   Task(
+     prompt=postflight_prompt,
+     subagent_type="spek:spec-enforcer",
+     model="sonnet",
+     description="Postflight validation for Phase {phase}"
+   )
+   ```
+
+   **Handle postflight return:**
+
+   **`## POSTFLIGHT PASS`:**
+   - Display: `✓ Triangle validated - spec ↔ tests ↔ code consistent`
+   - Show SPEC.md updates made
+   - Proceed to step 8
+
+   **`## POSTFLIGHT DRIFT`:**
+   - Display drift details
+   - Check severity
+   - **If CRITICAL:** Create gap closure plan: `/spek:plan-phase {X} --gaps`
+   - **If WARNING:** Offer: 1) Fix now (gap closure), 2) Accept drift, 3) Abort
+   - Wait for user response
 
 8. **Update roadmap and state**
    - Update ROADMAP.md, STATE.md
