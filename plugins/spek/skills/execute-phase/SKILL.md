@@ -350,288 +350,66 @@ This helps users understand resource usage and identify heavy plans.
 
    **If clean:** Continue to verification.
 
-7. **Verify phase goal**
-   Check config: `WORKFLOW_VERIFIER=$(cat .planning/config.json 2>/dev/null | grep -o '"verifier"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")`
+7. **Mark execution complete**
 
-   **If `workflow.verifier` is `false`:** Skip verifier but still run postflight (step 7.5).
-
-   **Otherwise:**
-   - Spawn `spek:verifier` subagent with phase directory and goal
-   - Verifier checks must_haves against actual codebase (not SUMMARY claims)
-   - Creates VERIFICATION.md with detailed report
-   - Route by status:
-     - `passed` → continue to step 7.5 (postflight)
-     - `human_needed` → present items, get approval or feedback
-     - `gaps_found` → present gaps, offer `/spek:plan-phase {X} --gaps`
-
-7.5. **Postflight Triangle Validation**
-
-   **CRITICAL:** This validates the spec ↔ tests ↔ code triangle after implementation.
-
-   Display stage banner:
-   ```
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    SPEK ► POSTFLIGHT VALIDATION
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-   ◆ Validating spec triangle: spec ↔ tests ↔ code...
-   ```
-
-   **Gather context for postflight:**
+   **NOTE:** Verification and triangle validation happen in separate `/spek:verify-phase` skill for better separation of concerns. This allows re-verification without re-execution.
 
    ```bash
-   # Get child spec (already found in preflight)
-   if [ -n "$CHILD_SPEC" ]; then
-     SPEC_CONTENT=$(cat "$CHILD_SPEC")
+   # Update STATE.md to mark execution complete
+   sed -i.bak "s/^Status:.*/Status: Execution complete/" .planning/STATE.md
+   rm .planning/STATE.md.bak
 
-     # Get test files from spec
-     TEST_FILES=$(sed -n '/^## Test Files/,/^## /p' "$CHILD_SPEC" | grep -v "^##" | grep -v "^$")
-
-     # Get implementation files from spec
-     IMPL_FILES=$(sed -n '/^## Files/,/^## /p' "$CHILD_SPEC" | grep -v "^##" | grep -v "^$")
-   fi
-
-   # Get files modified during execution
-   MODIFIED_FILES=$(git diff --name-only HEAD~{N}..HEAD)  # where N = number of commits this phase
-
-   # Get summaries
-   SUMMARIES=$(cat "${PHASE_DIR}"/*-SUMMARY.md 2>/dev/null)
+   echo "✓ Execution complete - ready for verification"
+   echo ""
    ```
 
-   **Spawn spek:spec-enforcer in postflight mode:**
+8. **Commit execution metadata**
 
-   ```markdown
-   <postflight_context>
+   Check `COMMIT_PLANNING_DOCS` from config.json (default: true).
 
-   **Phase:** {phase_number} - {phase_name}
-   **Mode:** postflight
-
-   **Spec:**
-   {spec_content}
-
-   **Test Files (from spec):**
-   {test_files}
-
-   **Implementation Files (from spec + git):**
-   {impl_files}
-   {modified_files}
-
-   **Execution Summaries:**
-   {summaries}
-
-   </postflight_context>
-
-   <instructions>
-
-   Validate the three edges of the spec triangle:
-
-   **Edge 1: Spec → Tests (Coverage)**
-   - Does every acceptance criterion have test coverage?
-   - Check test files exist and contain tests for each criterion
-   - List any gaps
-
-   **Edge 2: Tests → Code (All Pass)**
-   - Run test suite (npm test, pytest, etc.)
-   - Verify all tests GREEN
-   - Report any failures
-
-   **Edge 3: Code → Spec (Exact Match)**
-   - Does implementation match requirements? (no more, no less)
-   - Check for scope creep (extra features not in spec)
-   - Check for missing requirements (spec says X, code doesn't have it)
-
-   **Also check:**
-   - Update child SPEC.md "Files" section with implementation file paths
-   - Update child SPEC.md "Test Files" section if not already updated
-   - Mark requirements as complete: `- [x]` in spec
-
-   **Output format:**
-   ## POSTFLIGHT PASS
-   **Triangle:** Valid ✓
-   **Coverage:** {N}/{N} criteria tested
-   **Tests:** GREEN ✓
-   **Scope:** Exact match ✓
-
-   **SPEC.md updates:**
-   - Files section: {N} files added
-   - Test Files section: {M} test files confirmed
-   - Requirements: {K} marked complete
-
-   OR
-
-   ## POSTFLIGHT DRIFT
-   **Edge:** {spec-leads | code-leads | test-gap}
-   **Severity:** {CRITICAL | WARNING}
-   **Details:** {description}
-   **Fix:** {what needs to happen}
-
-   </instructions>
+   ```bash
+   COMMIT_PLANNING=$(cat .planning/config.json 2>/dev/null | grep -o '"COMMIT_PLANNING_DOCS"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
    ```
 
+   If false: Skip git operations for .planning/ files.
+
+   If true: Commit STATE.md update:
+   ```bash
+   git add .planning/STATE.md
+   git commit -m "docs(spek): phase ${PHASE} execution complete
+
+Phase ${PHASE} execution finished - ready for verification.
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
    ```
-   Task(
-     prompt=postflight_prompt,
-     subagent_type="spek:spec-enforcer",
-     model="sonnet",
-     description="Postflight validation for Phase {phase}"
-   )
-   ```
 
-   **Handle postflight return:**
-
-   **`## POSTFLIGHT PASS`:**
-   - Display: `✓ Triangle validated - spec ↔ tests ↔ code consistent`
-   - Show SPEC.md updates made
-   - Proceed to step 8
-
-   **`## POSTFLIGHT DRIFT`:**
-   - Display drift details
-   - Check severity
-   - **If CRITICAL:** Create gap closure plan: `/spek:plan-phase {X} --gaps`
-   - **If WARNING:** Offer: 1) Fix now (gap closure), 2) Accept drift, 3) Abort
-   - Wait for user response
-
-8. **Update roadmap and state**
-   - Update ROADMAP.md, STATE.md
-
-9. **Update requirements**
-   Mark phase requirements as Complete:
-   - Read ROADMAP.md, find this phase's `Requirements:` line (e.g., "AUTH-01, AUTH-02")
-   - Read REQUIREMENTS.md traceability table
-   - For each REQ-ID in this phase: change Status from "Pending" to "Complete"
-   - Write updated REQUIREMENTS.md
-   - Skip if: REQUIREMENTS.md doesn't exist, or phase has no Requirements line
-
-10. **Commit phase completion**
-    Check `COMMIT_PLANNING_DOCS` from config.json (default: true).
-    If false: Skip git operations for .planning/ files.
-    If true: Bundle all phase metadata updates in one commit:
-    - Stage: `git add .planning/ROADMAP.md .planning/STATE.md`
-    - Stage REQUIREMENTS.md if updated: `git add .planning/REQUIREMENTS.md`
-    - Commit: `docs({phase}): complete {phase-name} phase`
-
-11. **Offer next steps**
-    - Route to next action (see `<offer_next>`)
+9. **Offer next steps**
+   - Route to verification (see `<offer_next>`)
 </process>
 
 <offer_next>
-Output this markdown directly (not as a code block). Route based on status:
-
-| Status | Route |
-|--------|-------|
-| `gaps_found` | Route C (gap closure) |
-| `human_needed` | Present checklist, then re-route based on approval |
-| `passed` + more phases | Route A (next phase) |
-| `passed` + last phase | Route B (milestone complete) |
-
----
-
-**Route A: Phase verified, more phases remain**
+Output this markdown directly (not as a code block):
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- SPEK ► PHASE {Z} COMPLETE ✓
+ SPEK ► PHASE {Z} EXECUTION COMPLETE ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **Phase {Z}: {Name}**
 
 {Y} plans executed
-Goal verified ✓
+{N} commits made
+All tests passing ✓
 
 ───────────────────────────────────────────────────────────────
 
 ## ▶ Next Up
 
-**Phase {Z+1}: {Name}** — {Goal from ROADMAP.md}
+Phase ready for verification — checks goal achievement and validates spec triangle.
 
-/spek:discuss-phase {Z+1} — gather context and clarify approach
+Continue:
+  /spek:go                - Auto-route to verification
+  /spek:verify-phase {Z}  - Verify phase {Z}
 
-<sub>/clear first → fresh context window</sub>
-
-───────────────────────────────────────────────────────────────
-
-**Also available:**
-- /spek:plan-phase {Z+1} — skip discussion, plan directly
-- /spek:verify-work {Z} — manual acceptance testing before continuing
-
-───────────────────────────────────────────────────────────────
-
----
-
-**Route B: Phase verified, milestone complete**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- SPEK ► MILESTONE COMPLETE 🎉
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-**v1.0**
-
-{N} phases completed
-All phase goals verified ✓
-
-───────────────────────────────────────────────────────────────
-
-## ▶ Next Up
-
-**Audit milestone** — verify requirements, cross-phase integration, E2E flows
-
-/spek:audit-milestone
-
-<sub>/clear first → fresh context window</sub>
-
-───────────────────────────────────────────────────────────────
-
-**Also available:**
-- /spek:verify-work — manual acceptance testing
-- /spek:complete-milestone — skip audit, archive directly
-
-───────────────────────────────────────────────────────────────
-
----
-
-**Route C: Gaps found — need additional planning**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- SPEK ► PHASE {Z} GAPS FOUND ⚠
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-**Phase {Z}: {Name}**
-
-Score: {N}/{M} must-haves verified
-Report: .planning/phases/{phase_dir}/{phase}-VERIFICATION.md
-
-### What's Missing
-
-{Extract gap summaries from VERIFICATION.md}
-
-───────────────────────────────────────────────────────────────
-
-## ▶ Next Up
-
-**Plan gap closure** — create additional plans to complete the phase
-
-/spek:plan-phase {Z} --gaps
-
-<sub>/clear first → fresh context window</sub>
-
-───────────────────────────────────────────────────────────────
-
-**Also available:**
-- cat .planning/phases/{phase_dir}/{phase}-VERIFICATION.md — see full report
-- /spek:verify-work {Z} — manual testing before planning
-
-───────────────────────────────────────────────────────────────
-
----
-
-After user runs /spek:plan-phase {Z} --gaps:
-1. Planner reads VERIFICATION.md gaps
-2. Creates plans 04, 05, etc. to close gaps
-3. User runs /spek:execute-phase {Z} again
-4. Execute-phase runs incomplete plans (04, 05...)
-5. Verifier runs again → loop until passed
-</offer_next>
-
-<wave_execution>
 **Parallel spawning:**
 
 Before spawning, read file contents. The `@` syntax does not work across Task() boundaries.

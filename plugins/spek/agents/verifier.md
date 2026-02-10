@@ -811,9 +811,40 @@ fi
 # Collect test files from summaries
 TEST_FILES=$(cat "$PHASE_DIR"/*-SUMMARY.md | grep -E "^\s*-\s+.*test.*" | sed 's/^\s*-\s*//' | sort -u)
 
-# Similar logic as Files section
+# If spec has "## Test Files" section
 if grep -q "^## Test Files" "$CHILD_SPEC" && [ -n "$TEST_FILES" ]; then
-  # Update test files section (same pattern as Files)
+  # Check if empty (contains only "(Will be populated...)" or similar)
+  TEST_CONTENT=$(sed -n '/^## Test Files/,/^## /p' "$CHILD_SPEC" | grep -v "^##" | grep -v "^$" | grep -v "populated")
+
+  if [ -z "$TEST_CONTENT" ]; then
+    # Empty - populate it
+    sed -i.bak '/^## Test Files/,/^## /{
+      /^## Test Files/a\
+\
+'"$(echo "$TEST_FILES" | sed 's/^/- /')"'
+\
+      /^$/d
+      /populated/d
+    }' "$CHILD_SPEC"
+  else
+    # Has content - append new files (dedupe)
+    EXISTING=$(sed -n '/^## Test Files/,/^## /p' "$CHILD_SPEC" | grep "^- " | sed 's/^- //')
+    ALL_TEST_FILES=$(echo -e "$EXISTING\n$TEST_FILES" | sort -u)
+
+    # Replace section
+    sed -i.bak '/^## Test Files/,/^## /{
+      /^## Test Files/{
+        a\
+'"$(echo "$ALL_TEST_FILES" | sed 's/^/- /')"'
+\
+        d
+      }
+      /^- /d
+      /^$/d
+    }' "$CHILD_SPEC"
+  fi
+
+  rm "${CHILD_SPEC}.bak" 2>/dev/null
 fi
 ```
 
