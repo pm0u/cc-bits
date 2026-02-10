@@ -13,9 +13,17 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // Format directory to show up to 2 folders deep
 function formatDir(dir) {
+  // Replace home directory with ~ (cross-platform)
+  const homeDir = os.homedir();
+  if (dir.startsWith(homeDir)) {
+    dir = "~" + dir.slice(homeDir.length);
+  }
+
   const parts = dir.split(path.sep).filter(Boolean);
   if (parts.length <= 2) {
-    return dir.startsWith("/") ? "/" + parts.join("/") : parts.join("/");
+    return dir.startsWith("/") || dir.startsWith("~")
+      ? dir
+      : parts.join("/");
   }
   return ".../" + parts.slice(-2).join("/");
 }

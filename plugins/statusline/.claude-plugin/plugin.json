@@ -1,7 +1,7 @@
 {
   "name": "statusline",
   "description": "Enhanced statusline for Claude Code showing model, directory, context usage, and API rate limits",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "author": {
     "name": "Paul Mourer",
     "url": "https://github.com/pm0u"

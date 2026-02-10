@@ -1,6 +1,6 @@
 {
   "name": "statusline",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Enhanced statusline for Claude Code showing model, directory, context usage, and API rate limits",
   "keywords": [
     "claude",
