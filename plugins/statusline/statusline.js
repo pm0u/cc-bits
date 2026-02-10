@@ -15,17 +15,23 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 function formatDir(dir) {
   // Replace home directory with ~ (cross-platform)
   const homeDir = os.homedir();
-  if (dir.startsWith(homeDir)) {
+  const isHomeDir = dir.startsWith(homeDir);
+  if (isHomeDir) {
     dir = "~" + dir.slice(homeDir.length);
   }
 
   const parts = dir.split(path.sep).filter(Boolean);
-  if (parts.length <= 2) {
+
+  // If path starts with ~, don't count it as a folder level
+  const folderParts = isHomeDir && parts[0] === "~" ? parts.slice(1) : parts;
+
+  if (folderParts.length <= 2) {
     return dir.startsWith("/") || dir.startsWith("~")
       ? dir
       : parts.join("/");
   }
-  return ".../" + parts.slice(-2).join("/");
+
+  return ".../" + folderParts.slice(-2).join("/");
 }
 
 // Format time duration (ms to human readable)
