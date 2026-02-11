@@ -11,11 +11,11 @@
  * Commands:
  *   init execute-phase <phase> [--include=file1,file2,...]
  *     Returns all context for execute-phase workflow
- *     Available includes: state, config, roadmap, requirements, context, research
+ *     Available includes: state, config, roadmap, requirements, context, research, lessons
  *
  *   init plan-phase <phase> [--include=file1,file2,...]
  *     Returns all context for plan-phase workflow
- *     Available includes: state, config, roadmap, requirements, context, research, verification, uat
+ *     Available includes: state, config, roadmap, requirements, context, research, verification, uat, lessons
  *
  *   phase-index <phase>
  *     Returns index of all plans in a phase with metadata
@@ -305,6 +305,9 @@ function cmdInitExecutePhase(cwd, phase, includes) {
   if (includes.has('research') && phaseDir) {
     result.research_content = safeRead(path.join(phaseDir, 'RESEARCH.md'));
   }
+  if (includes.has('lessons')) {
+    result.lessons_content = safeRead(path.join(cwd, '.planning', 'LESSONS.md'));
+  }
 
   console.log(JSON.stringify(result, null, 2));
 }
@@ -374,6 +377,9 @@ function cmdInitPlanPhase(cwd, phase, includes) {
   }
   if (includes.has('uat') && phaseDir) {
     result.uat_content = safeRead(path.join(phaseDir, 'UAT.md'));
+  }
+  if (includes.has('lessons')) {
+    result.lessons_content = safeRead(path.join(cwd, '.planning', 'LESSONS.md'));
   }
 
   console.log(JSON.stringify(result, null, 2));

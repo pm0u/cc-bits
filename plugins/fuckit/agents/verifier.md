@@ -586,6 +586,36 @@ Some things can't be verified programmatically:
 score = (verified_truths / total_truths)
 ```
 
+## Step 9.5: Extract Lessons (If Gaps Found)
+
+When verification finds gaps, extract **why** they happened — not just what's missing.
+
+For each gap, identify the root pattern:
+
+| Gap Pattern | Lesson Category |
+|-------------|-----------------|
+| Artifact exists but is stub | "Executors produced placeholder instead of implementation" |
+| Key link not wired | "Components built in isolation without integration" |
+| Anti-pattern found (TODO/placeholder) | "Implementation deferred mid-task" |
+| Test failed | "Untested assumption about behavior" |
+
+**Append to `.planning/LESSONS.md`:**
+
+(Create file if it doesn't exist, append if it does)
+
+Format for each lesson:
+
+```markdown
+### Phase {X}: {category} — {brief description}
+
+- **What happened:** {gap.truth} failed verification — {gap.reason}
+- **Root cause:** {why this happened, not just what's missing}
+- **Avoid by:** {actionable guidance for future planners/executors}
+```
+
+**Keep lessons concise** — 3-4 lines each. The file should stay scannable.
+**Only extract novel lessons** — if a similar lesson already exists in the file, skip it.
+
 ## Step 10: Structure Gap Output (If Gaps Found)
 
 When gaps are found, structure them for consumption by `/fuckit:plan-phase --gaps`.

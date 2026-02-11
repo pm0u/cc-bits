@@ -50,6 +50,14 @@ git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
 ```
 
 Store `COMMIT_PLANNING_DOCS` for use in git operations.
+
+**Read accumulated lessons:**
+
+```bash
+cat .planning/LESSONS.md 2>/dev/null
+```
+
+**If lessons exist:** Scan for patterns relevant to current plan's domain. Keep these in mind during execution to avoid repeating known issues.
 </step>
 
 
@@ -662,6 +670,21 @@ After all tasks complete, create `{phase}-{plan}-SUMMARY.md`.
 ```
 
 Or if none: "None - plan executed exactly as written."
+
+**Extract lessons from deviations:**
+
+If any deviations were documented (Rule 1, 2, or 3), append lessons to `.planning/LESSONS.md`:
+
+For each deviation:
+```markdown
+### Phase {X}: {deviation_rule_category} — {brief description}
+
+- **What happened:** {description of what was found during execution}
+- **Root cause:** {why the plan didn't anticipate this}
+- **Avoid by:** {what future planners should include}
+```
+
+Only record if the deviation reveals a **pattern** (e.g., "missing null check" is too specific; "API routes lacked input validation" is a useful pattern).
 
 **Include authentication gates section if any occurred:**
 

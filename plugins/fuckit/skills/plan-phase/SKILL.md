@@ -271,6 +271,9 @@ RESEARCH_CONTENT=$(cat "${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null)
 # Gap closure files (only if --gaps mode)
 VERIFICATION_CONTENT=$(cat "${PHASE_DIR}"/*-VERIFICATION.md 2>/dev/null)
 UAT_CONTENT=$(cat "${PHASE_DIR}"/*-UAT.md 2>/dev/null)
+
+# Accumulated lessons from prior phases
+LESSONS_CONTENT=$(cat .planning/LESSONS.md 2>/dev/null)
 ```
 
 ## 8. Spawn fuckit:planner Agent
@@ -316,6 +319,9 @@ IMPORTANT: If phase context exists below, it contains USER DECISIONS from /fucki
 **Gap Closure (if --gaps mode):**
 {verification_content}
 {uat_content}
+
+**Lessons from Prior Phases (if exists):**
+{lessons_content}
 
 </planning_context>
 

@@ -96,15 +96,28 @@ Your job: Validate that the triangle is consistent after implementation.
    - **Test drift**: Tests check something not in the spec
    - **Code drift**: Spec describes something the code doesn't implement
 
-6. Generate drift report using template:
+6. If drift detected, append lesson to `.planning/LESSONS.md`:
+
+   For each drift item, record the pattern:
+   ```markdown
+   ### Phase {X}: spec-drift — {brief description}
+
+   - **What happened:** {drift type} detected — {specific drift item}
+   - **Root cause:** {why spec/tests/code diverged}
+   - **Avoid by:** {what future planners/executors should do differently}
+   ```
+
+   Only record if the drift reveals a **pattern** — skip one-off typos or trivial mismatches.
+
+7. Generate drift report using template:
    @~/.claude/plugins/marketplaces/sendit/sendit/templates/drift-report.md
 
-7. Update SPEC.md:
+8. Update SPEC.md:
    - Populate/update Files section with changed implementation files
    - Populate/update Test Files section with relevant test files
    - Update status to IMPLEMENTED if all acceptance criteria pass
 
-8. Update specs/INDEX.md with current health
+9. Update specs/INDEX.md with current health
 
 </step>
 </process>

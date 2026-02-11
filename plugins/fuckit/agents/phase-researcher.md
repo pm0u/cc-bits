@@ -475,6 +475,14 @@ git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
 
 Parse CONTEXT.md content before proceeding to research.
 
+**Read accumulated lessons:**
+
+```bash
+cat .planning/LESSONS.md 2>/dev/null
+```
+
+**If lessons exist:** Use them to focus research. If prior phases had issues with a library or pattern, research alternatives or best practices to prevent recurrence.
+
 ## Step 2: Identify Research Domains
 
 Based on phase description, identify what needs investigating:

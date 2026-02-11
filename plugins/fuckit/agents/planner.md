@@ -1045,6 +1045,17 @@ git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
 ```
 
 Store `COMMIT_PLANNING_DOCS` for use in git operations.
+
+**Read accumulated lessons:**
+
+```bash
+cat .planning/LESSONS.md 2>/dev/null
+```
+
+**If lessons exist:** These are patterns from prior phases where verification found gaps or executors hit deviations. Use them to:
+- Avoid repeating the same mistakes in task specifications
+- Add explicit verification steps for known failure patterns
+- Include "don't forget" notes in task `<action>` elements where relevant
 </step>
 
 <step name="load_codebase_context">
