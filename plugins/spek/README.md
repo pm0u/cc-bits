@@ -1,14 +1,14 @@
 # Spek - Spec-Driven Development with Triangle Enforcement
 
-**Version:** 3.0.0
+**Version:** 3.1.0
 
-Spec-driven development workflow that enforces the spec triangle: **SPEC ↔ tests ↔ code**. Combines comprehensive spec creation with proven FUCKIT orchestration and automatic triangle validation.
+Spec-driven development workflow that enforces the spec triangle: **SPEC <-> tests <-> code**. Combines comprehensive spec creation with proven FUCKIT orchestration and automatic triangle validation.
 
 ```
         SPEC.md
        /       \
       /         \
-   Tests ←────→ Code
+   Tests <----> Code
 ```
 
 ## What Spek Does
@@ -18,23 +18,24 @@ Spek ensures your implementation matches your specification through **active enf
 1. **Interactive Spec Creation** - Deep discussion to create comprehensive SPEC.md files
 2. **Test Derivation** - Automatically writes tests from acceptance criteria BEFORE implementation
 3. **Preflight Validation** - Checks for conflicts before execution starts
-4. **Implementation** - Proven FUCKIT workflow (research → plan → execute → verify)
+4. **Implementation** - Proven FUCKIT workflow (research -> plan -> execute -> verify)
 5. **Postflight Validation** - Verifies the triangle is consistent after implementation
 6. **Spec Synchronization** - Updates SPEC.md Files sections as code evolves
+7. **Cross-Phase Learning** - Accumulates lessons from failures/deviations across phases
 
 ## The Spec Triangle
 
-**Edge 1: Spec → Tests (Coverage)**
+**Edge 1: Spec -> Tests (Coverage)**
 - Every acceptance criterion must have test coverage
 - Tests derived during planning phase
 - Gaps detected in postflight validation
 
-**Edge 2: Tests → Code (All Pass)**
+**Edge 2: Tests -> Code (All Pass)**
 - Tests must be GREEN before commits
 - No skipping tests - enforced in executor
 - Failures block commits until fixed
 
-**Edge 3: Code → Spec (Exact Match)**
+**Edge 3: Code -> Spec (Exact Match)**
 - Implementation matches requirements (no more, no less)
 - Scope creep detected in postflight
 - Missing requirements flagged
@@ -81,17 +82,19 @@ Smart router that reads state and does the right thing:
 1. **Plan** (`/spek:plan-phase`)
    - Research how to implement
    - Create detailed task breakdown
-   - **Derive tests from acceptance criteria** ✨
+   - Derive tests from acceptance criteria
 
 2. **Execute** (`/spek:execute-phase`)
-   - **Preflight check** - validates readiness ✨
+   - Preflight check - validates readiness
    - Execute tasks with atomic commits
-   - **Tests must pass before commits** ✨
+   - Tests must pass before commits
+   - Lessons from prior phases inform execution
 
 3. **Verify** (`/spek:verify-phase`)
    - Goal-backward verification (code delivers what spec promised)
-   - **Postflight triangle validation** - validates spec ↔ tests ↔ code ✨
-   - **Updates SPEC.md Files sections** ✨
+   - Postflight triangle validation - validates spec <-> tests <-> code
+   - Updates SPEC.md Files sections
+   - Extracts lessons from any gaps found
    - Marks requirements complete
    - Creates gap closure plans if needed
 
@@ -107,11 +110,11 @@ Complex features split into parent + children:
 
 ```
 specs/offroad-trail-pages/
-├── SPEC.md (parent)
-├── architecture/SPEC.md
-├── landing-page/SPEC.md
-├── region-state-pages/SPEC.md
-└── trail-detail-pages/SPEC.md
++-- SPEC.md (parent)
++-- architecture/SPEC.md
++-- landing-page/SPEC.md
++-- region-state-pages/SPEC.md
++-- trail-detail-pages/SPEC.md
 ```
 
 Each child becomes a phase in the roadmap.
@@ -152,11 +155,30 @@ Tests written **before implementation**:
 - Updates SPEC.md Files sections
 - Creates gap closure plans if drift detected
 
+### Cross-Phase Learning
+
+`.planning/LESSONS.md` accumulates project-specific lessons across phases:
+
+**Writers:**
+- **Verifier** - Extracts why gaps happened when verification finds issues
+- **Executor** - Records patterns from deviations encountered during execution
+- **Spec Enforcer** - Logs drift patterns detected in postflight validation
+
+**Readers:**
+- **Planner** - Avoids repeating mistakes in task specifications
+- **Phase Researcher** - Focuses research on known problem areas
+- **Executor** - Anticipates known issues before they recur
+
+### CLI Delegation
+
+`spek-tools.js` handles mechanical operations (state parsing, config validation, roadmap queries) so skills and agents can focus on orchestration. Single-read architecture eliminates redundant file access.
+
 ## Commands
 
 ### Primary Workflow
 
 - `/spek:define` - Create comprehensive SPEC.md through discussion
+- `/spek:new-project` - Initialize project with deep context gathering
 - `/spek:new-milestone` - Generate roadmap from SPEC.md
 - `/spek:go` - Smart router (just keep running this)
 
@@ -165,62 +187,41 @@ Tests written **before implementation**:
 - `/spek:plan-phase N` - Plan phase N (includes test derivation)
 - `/spek:execute-phase N` - Execute phase N (includes pre/postflight)
 - `/spek:verify-phase N` - Verify phase N (includes SPEC updates)
+- `/spek:discuss-phase N` - Interactive discussion before planning
+- `/spek:research-phase N` - Standalone research before planning
+- `/spek:add-phase` - Add phase to end of roadmap
+- `/spek:insert-phase` - Insert urgent work as decimal phase (e.g., 72.1)
+- `/spek:remove-phase` - Remove a future phase and renumber
 
-### Utilities
+### Progress and Session
 
 - `/spek:status` - Visual state diagram
 - `/spek:progress` - Show progress and suggest next action
-- `/spek:discuss-phase N` - Interactive discussion before planning
-- `/spek:add-phase` - Add phase to roadmap
+- `/spek:pause-work` - Create context handoff when pausing mid-phase
+- `/spek:resume-work` - Resume from previous session with full context
+
+### Verification and Testing
+
+- `/spek:verify-work` - Conversational UAT for built features
+- `/spek:audit-milestone` - Audit milestone completion before archiving
+- `/spek:plan-milestone-gaps` - Create phases to close audit gaps
+
+### Utilities
+
+- `/spek:quick` - Quick task with atomic commits, skip optional agents
+- `/spek:debug` - Systematic debugging with persistent state
+- `/spek:map-codebase` - Analyze codebase with parallel mapper agents
+- `/spek:repair-state` - Reconcile state from git history
+- `/spek:undo` - Rollback a completed plan
+- `/spek:add-todo` / `/spek:check-todos` - Todo management
 - `/spek:complete-milestone` - Archive and close milestone
 
-## Example Session
+### Configuration
 
-```bash
-# 1. Create spec
-/spek:define "Add dark mode support"
-  → Interactive discussion
-  → Creates specs/dark-mode/SPEC.md
-
-# 2. Generate roadmap
-/spek:new-milestone
-  → Creates .planning/ROADMAP.md (3 phases)
-
-# 3. Execute workflow
-/spek:go
-  → Plans Phase 1 (design tokens)
-  → Derives tests from acceptance criteria
-  → Ready to execute
-
-/spek:go
-  → Preflight check passes
-  → Executes Phase 1
-  → Tests pass
-  → Postflight validates triangle
-  → Phase 1 complete
-
-/spek:go
-  → Auto-advances to Phase 2
-  → Plans Phase 2 (component updates)
-  → ...repeat
-```
-
-## What Makes Spek Different
-
-**vs FUCKIT:**
-- Adds human-readable specs/ directory (shareable, version-controlled)
-- Enforces spec triangle (tests, validation, synchronization)
-- Better for long-term projects with documented requirements
-
-**vs SENDIT:**
-- Reuses proven FUCKIT orchestration (research, plan, execute, verify)
-- Phase-based execution (better for complex features)
-- Hierarchical specs (parent/child organization)
-
-**vs Flow:**
-- Automatic triangle enforcement (no manual validation)
-- Test derivation integrated into planning
-- SPEC.md stays in sync automatically
+- `/spek:settings` - Configure workflow toggles and model profile
+- `/spek:set-profile` - Switch model profile (quality/balanced/budget)
+- `/spek:update` - Update to latest version
+- `/spek:help` - Show available commands
 
 ## Configuration
 
@@ -244,8 +245,6 @@ Create `.planning/config.json` to customize:
 - `balanced` - Sonnet for most operations (good quality, fast, recommended)
 - `budget` - Haiku for checks/validation (fastest, cheapest, less thorough)
 
-See `spek/references/model-profiles.md` for detailed agent assignments.
-
 ### Workflow Toggles
 
 **workflow.research** (default: true)
@@ -266,70 +265,66 @@ See `spek/references/model-profiles.md` for detailed agent assignments.
 
 ### What Cannot Be Disabled
 
-These checks **always run** to ensure spec triangle integrity:
+These checks always run to ensure spec triangle integrity:
 
-✅ **Test derivation** (plan-phase step 9.5)
-- Tests written from acceptance criteria before implementation
-- Cannot be skipped in v3.0 - triangle enforcement requires tests
-
-✅ **Preflight validation** (execute-phase step 3.5)
-- Checks for conflicts before execution starts
-- Validates tests exist and are ready
-
-✅ **Test enforcement** (executor agent)
-- Tests must pass before commits
-- Hard exit code check prevents commits with failing tests
-
-✅ **Postflight triangle validation** (verify-phase step 5)
-- Validates spec ↔ tests ↔ code consistency
-- Checks all three edges with severity levels
-- Cannot be disabled - core triangle guarantee
+- **Test derivation** (plan-phase) - Tests written from acceptance criteria before implementation
+- **Preflight validation** (execute-phase) - Checks for conflicts before execution starts
+- **Test enforcement** (executor) - Tests must pass before commits
+- **Postflight triangle validation** (verify-phase) - Validates spec <-> tests <-> code consistency
 
 ## File Structure
 
 ```
 your-project/
-├── specs/                          # Human-readable specifications
-│   └── {feature}/
-│       ├── SPEC.md                # Requirements, acceptance criteria, decisions
-│       └── {child}/SPEC.md        # Child specs (if hierarchical)
-│
-└── .planning/                      # Execution state (machine-oriented)
-    ├── PROJECT.md                 # Current milestone, requirements
-    ├── ROADMAP.md                 # Phase breakdown
-    ├── STATE.md                   # Current position, decisions, history
-    └── phases/
-        └── {NN}-{name}/
-            ├── {NN}-RESEARCH.md   # How to implement
-            ├── {NN}-01-PLAN.md    # Task breakdown
-            ├── {NN}-01-SUMMARY.md # What was done
-            └── {NN}-VERIFICATION.md # Goal achievement
++-- specs/                          # Human-readable specifications
+|   +-- {feature}/
+|       +-- SPEC.md                # Requirements, acceptance criteria, decisions
+|       +-- {child}/SPEC.md        # Child specs (if hierarchical)
+|
++-- .planning/                      # Execution state (machine-oriented)
+    +-- PROJECT.md                 # Current milestone, requirements
+    +-- ROADMAP.md                 # Phase breakdown
+    +-- STATE.md                   # Current position, decisions, history
+    +-- LESSONS.md                 # Accumulated lessons across phases
+    +-- config.json                # Workflow toggles, model profile
+    +-- phases/
+        +-- {NN}-{name}/
+            +-- {NN}-RESEARCH.md   # How to implement
+            +-- {NN}-01-PLAN.md    # Task breakdown
+            +-- {NN}-01-SUMMARY.md # What was done
+            +-- {NN}-VERIFICATION.md # Goal achievement
 ```
 
 ## When to Use Spek
 
 **Good fit:**
-- ✅ Complex features requiring documentation
-- ✅ Team projects (specs are shareable)
-- ✅ Long-term projects (specs don't go stale)
-- ✅ Compliance/audit needs (documented requirements)
-- ✅ Multiple implementation approaches (specs lock decisions)
+- Complex features requiring documentation
+- Team projects (specs are shareable)
+- Long-term projects (specs don't go stale)
+- Compliance/audit needs (documented requirements)
+- Multiple implementation approaches (specs lock decisions)
 
 **Not ideal:**
-- ❌ Quick prototypes or experiments
-- ❌ One-off bug fixes
-- ❌ Solo projects where specs feel like overhead
+- Quick prototypes or experiments
+- One-off bug fixes
+- Solo projects where specs feel like overhead
 
 For lightweight tasks, use `/spek:quick` or stick with FUCKIT.
 
 ## Version History
 
-**3.0.0** (Current)
-- Enforced spec triangle validation
+**3.1.0** (Current)
+- Cross-phase learning (LESSONS.md)
+- README and documentation updates
+
+**3.0.0**
+- Enforced spec triangle validation (SPEC <-> tests <-> code)
 - Test derivation during planning
 - Preflight/postflight checks
 - SPEC.md synchronization
 - Mandatory test enforcement
+- Separate verify-phase skill
+- CLI delegation via spek-tools.js
 
 **2.x**
 - Hierarchical spec support
@@ -339,13 +334,3 @@ For lightweight tasks, use `/spek:quick` or stick with FUCKIT.
 **1.x**
 - Initial spec-driven concepts
 - Basic FUCKIT integration
-
-## Learn More
-
-- **References:** `plugins/spek/spek/references/spec-format.md`, `triangle-validation.md`
-- **Workflows:** `plugins/spek/spek/workflows/*.md`
-- **Agents:** `plugins/spek/agents/*.md`
-
----
-
-**Made with ❤️ for spec-driven development**
