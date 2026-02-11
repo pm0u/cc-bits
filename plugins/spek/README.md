@@ -1,6 +1,6 @@
 # Spek - Spec-Driven Development with Triangle Enforcement
 
-**Version:** 3.1.0
+**Version:** 3.2.0
 
 Spec-driven development workflow that enforces the spec triangle: **SPEC <-> tests <-> code**. Combines comprehensive spec creation with proven FUCKIT orchestration and automatic triangle validation.
 
@@ -313,7 +313,14 @@ For lightweight tasks, use `/spek:quick` or stick with FUCKIT.
 
 ## Version History
 
-**3.1.0** (Current)
+**3.2.0** (Current)
+- Tightened test enforcement — tests required when acceptance criteria exist
+- Spec-enforcer no longer writes "no test files" when acceptance criteria exist (self-reinforcing loop fix)
+- Test-writer bootstraps test framework when none exists
+- Preflight rejects "no tests" declarations when acceptance criteria are present
+- Executor exception now acceptance-criteria-aware
+
+**3.1.0**
 - Cross-phase learning (LESSONS.md)
 - README and documentation updates
 

@@ -288,11 +288,16 @@ This helps users understand resource usage and identify heavy plans.
    4. **Tests exist:** Are tests in place from plan-phase?
       - Check for test files in project (*.test.*, *.spec.*, *_test.*)
       - Check Test Files section in CHILD_SPEC
+      - **Also check if spec has acceptance criteria** (look for `## Acceptance Criteria` section with actual items)
       - Tests should be RED (failing, ready to turn GREEN)
-      - **If NO tests found:**
+      - **If NO tests found AND acceptance criteria exist:**
         - Severity: CRITICAL (blocker: yes)
-        - Reason: "Cannot enforce spec triangle without tests"
+        - Reason: "Spec has acceptance criteria but no tests were derived — triangle enforcement requires tests"
         - Action: Return to plan-phase to derive tests
+        - **Do NOT accept a Test Files section that says "no tests" or "no automated test files" when acceptance criteria exist** — this is a pipeline error from a previous phase, not an intentional decision
+      - **If NO tests found AND no acceptance criteria:**
+        - Severity: WARNING
+        - Reason: "No tests and no acceptance criteria — triangle validation will be limited"
       - **If tests found:**
         - Run tests to verify they're RED (failing)
         - If GREEN (passing): Warning "Tests already pass - was code pre-implemented?"

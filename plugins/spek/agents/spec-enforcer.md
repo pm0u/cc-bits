@@ -115,6 +115,10 @@ Your job: Validate that the triangle is consistent after implementation.
 8. Update SPEC.md:
    - Populate/update Files section with changed implementation files
    - Populate/update Test Files section with relevant test files
+   - **CRITICAL:** If the spec has acceptance criteria but NO test files exist, do NOT write "no test files" or similar into the Test Files section. This creates a self-reinforcing loop where the pipeline accepts its own declaration. Instead:
+     - Flag this as DRIFT (spec-tests edge broken)
+     - Include in drift report: "Acceptance criteria exist but no tests were derived"
+     - Leave Test Files section empty or with a note: "MISSING — tests required for {N} acceptance criteria"
    - Update status to IMPLEMENTED if all acceptance criteria pass
 
 9. Update specs/INDEX.md with current health

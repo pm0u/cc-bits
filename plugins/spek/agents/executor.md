@@ -617,7 +617,10 @@ If tests fail:
 - Iterate until GREEN (exit code 0)
 - Only then commit
 
-**Exception:** If this is the very first task of a phase and no test command is detected (no package.json, pytest.ini, go.mod, etc.), document this as "No tests configured in project" in SUMMARY.md. Postflight validation will flag this as triangle drift.
+**Exception:** If this is the very first task of a phase and no test command is detected (no package.json, pytest.ini, go.mod, etc.):
+- Check if the phase spec has acceptance criteria
+- **If acceptance criteria exist:** This is NOT acceptable — tests should have been derived during plan-phase. Document this as "MISSING TESTS — acceptance criteria exist but no test infrastructure found" in SUMMARY.md. Flag prominently so postflight catches it.
+- **If NO acceptance criteria exist:** Document as "No tests configured — no acceptance criteria for this phase" in SUMMARY.md. Postflight validation will flag this as triangle drift.
 
 **Why this matters:**
 

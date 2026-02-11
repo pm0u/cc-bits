@@ -52,7 +52,14 @@ If tests exist:
 
 If no tests exist:
 - Check package.json / pyproject.toml / go.mod for test framework hints
-- Use sensible defaults for the detected language/framework
+- If a test framework is configured but no test files exist, use that framework
+- **If NO test framework is configured at all:** Bootstrap one before writing tests:
+  - Detect project language from existing files (package.json → JS/TS, pyproject.toml → Python, go.mod → Go, etc.)
+  - Install an appropriate test runner (e.g., `vitest` for Vite/Astro projects, `jest` for generic JS/TS, `pytest` for Python)
+  - Create minimal test config if needed
+  - Add a `test` script to package.json (or equivalent)
+  - Then proceed to write tests using the newly configured framework
+- **Never skip writing tests because no framework exists** — the framework is a prerequisite you can create
 
 </step>
 
@@ -123,7 +130,7 @@ Return to the orchestrator:
 1. **Never look at or ask for the implementation plan** — you derive from spec only
 2. **Tests must fail** — you're writing the "red" in red-green-refactor
 3. **One criterion, one or more tests** — full coverage of acceptance criteria
-4. **Match project conventions** — don't introduce a new testing pattern
+4. **Match project conventions** — if tests exist, follow the established pattern. If no tests exist, choose a framework appropriate for the project stack and establish the convention
 5. **Be specific** — test exact behaviors, not vague "it works" assertions
 6. **Test boundaries** — include edge cases implied by the acceptance criteria
 7. **No implementation** — if you need a function signature, infer it from the spec's design decisions or make a reasonable guess. Don't write the function.
