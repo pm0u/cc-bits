@@ -42,31 +42,39 @@ Normalize phase input in step 2 before any directory lookups.
 
 <process>
 
-## 1. Validate Environment and Resolve Model Profile
+## 1. Initialize Context
+
+Load all context in one call (v1.15.0 optimization):
 
 ```bash
-ls .planning/ 2>/dev/null
+INIT=$(node ~/.claude/plugins/marketplaces/fuckit/bin/fuckit-tools.js init plan-phase "${PHASE:-1}" --include=state,config,roadmap,requirements)
 ```
 
-**If not found:** Error - user should run `/fuckit:new-project` first.
+**If .planning/ doesn't exist:** Error - user should run `/fuckit:new-project` first.
 
-**Resolve model profile for agent spawning:**
+Parse JSON for context:
 
 ```bash
-MODEL_PROFILE=$(cat .planning/config.json 2>/dev/null | grep -o '"model_profile"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || echo "balanced")
+# Models (resolved from profile)
+RESEARCHER_MODEL=$(echo "$INIT" | jq -r '.models.researcher')
+PLANNER_MODEL=$(echo "$INIT" | jq -r '.models.planner')
+CHECKER_MODEL=$(echo "$INIT" | jq -r '.models.checker')
+
+# Config flags
+MODEL_PROFILE=$(echo "$INIT" | jq -r '.config.model_profile')
+RESEARCH_ENABLED=$(echo "$INIT" | jq -r '.config.research')
+CHECKER_ENABLED=$(echo "$INIT" | jq -r '.config.plan_checker')
+
+# Phase info (will validate after normalizing PHASE arg)
+PHASE_DIR=$(echo "$INIT" | jq -r '.phase.dir // empty')
+
+# File contents (already loaded via --include)
+STATE_CONTENT=$(echo "$INIT" | jq -r '.state_content // empty')
+ROADMAP_CONTENT=$(echo "$INIT" | jq -r '.roadmap_content // empty')
+REQUIREMENTS_CONTENT=$(echo "$INIT" | jq -r '.requirements_content // empty')
 ```
 
-Default to "balanced" if not set.
-
-**Model lookup table:**
-
-| Agent | quality | balanced | budget |
-|-------|---------|----------|--------|
-| fuckit:phase-researcher | opus | sonnet | haiku |
-| fuckit:planner | opus | opus | sonnet |
-| fuckit:plan-checker | sonnet | sonnet | haiku |
-
-Store resolved models for use in Task calls below.
+Store models for use in Task calls below.
 
 ## 2. Parse and Normalize Arguments
 
@@ -139,7 +147,8 @@ If CONTEXT.md exists, display: `Using phase context from: ${PHASE_DIR}/*-CONTEXT
 **Check config for research setting:**
 
 ```bash
-WORKFLOW_RESEARCH=$(cat .planning/config.json 2>/dev/null | grep -o '"research"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+# Already loaded in RESEARCH_ENABLED from init
+WORKFLOW_RESEARCH="$RESEARCH_ENABLED"
 ```
 
 **If `workflow.research` is `false` AND `--research` flag NOT set:** Skip to step 6.
@@ -177,8 +186,8 @@ Gather additional context for research prompt:
 # Get phase description from roadmap
 PHASE_DESC=$(grep -A3 "Phase ${PHASE}:" .planning/ROADMAP.md)
 
-# Get requirements if they exist
-REQUIREMENTS=$(cat .planning/REQUIREMENTS.md 2>/dev/null | grep -A100 "## Requirements" | head -50)
+# Get requirements from already-loaded content
+REQUIREMENTS=$(echo "$REQUIREMENTS_CONTENT" | grep -A100 "## Requirements" | head -50)
 
 # Get prior decisions from STATE.md
 DECISIONS=$(grep -A20 "### Decisions Made" .planning/STATE.md 2>/dev/null)
@@ -254,12 +263,8 @@ ls "${PHASE_DIR}"/*-PLAN.md 2>/dev/null
 Read and store context file contents for the planner agent. The `@` syntax does not work across Task() boundaries - content must be inlined.
 
 ```bash
-# Read required files
-STATE_CONTENT=$(cat .planning/STATE.md)
-ROADMAP_CONTENT=$(cat .planning/ROADMAP.md)
-
-# Read optional files (empty string if missing)
-REQUIREMENTS_CONTENT=$(cat .planning/REQUIREMENTS.md 2>/dev/null)
+# Context files already loaded via init --include in step 1
+# STATE_CONTENT, ROADMAP_CONTENT, and REQUIREMENTS_CONTENT are available
 # CONTEXT_CONTENT already loaded in step 4
 RESEARCH_CONTENT=$(cat "${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null)
 
@@ -352,7 +357,7 @@ Parse planner output:
 **`## PLANNING COMPLETE`:**
 - Display: `Planner created {N} plan(s). Files on disk.`
 - If `--skip-verify`: Skip to step 13
-- Check config: `WORKFLOW_PLAN_CHECK=$(cat .planning/config.json 2>/dev/null | grep -o '"plan_check"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")`
+- Check config (already loaded): `WORKFLOW_PLAN_CHECK="$CHECKER_ENABLED"`
 - If `workflow.plan_check` is `false`: Skip to step 13
 - Otherwise: Proceed to step 10
 

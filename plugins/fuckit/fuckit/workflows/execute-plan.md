@@ -11,61 +11,42 @@ Read config.json for planning behavior settings.
 
 <process>
 
-<step name="resolve_model_profile" priority="first">
-Read model profile for agent spawning:
+<step name="initialize" priority="first">
+Load all context in one call (v1.15.0 optimization):
 
 ```bash
-MODEL_PROFILE=$(cat .planning/config.json 2>/dev/null | grep -o '"model_profile"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || echo "balanced")
+INIT=$(node ~/.claude/plugins/marketplaces/fuckit/bin/fuckit-tools.js init execute-phase "${PHASE}" --include=state,config)
 ```
 
-Default to "balanced" if not set.
-
-**Model lookup table:**
-
-| Agent | quality | balanced | budget |
-|-------|---------|----------|--------|
-| fuckit:executor | opus | sonnet | sonnet |
-
-Store resolved model for use in Task calls below.
-</step>
-
-<step name="load_project_state">
-Before any operation, read project state:
+Parse JSON for context:
 
 ```bash
-cat .planning/STATE.md 2>/dev/null
+# Models (resolved from profile)
+EXECUTOR_MODEL=$(echo "$INIT" | jq -r '.models.executor')
+
+# Config flags
+MODEL_PROFILE=$(echo "$INIT" | jq -r '.config.model_profile')
+COMMIT_PLANNING_DOCS=$(echo "$INIT" | jq -r '.config.commit_docs')
+
+# Phase info
+PHASE_DIR=$(echo "$INIT" | jq -r '.phase.dir')
+PHASE_FOUND=$(echo "$INIT" | jq -r '.phase.found')
+
+# File contents (already loaded via --include)
+STATE_CONTENT=$(echo "$INIT" | jq -r '.state_content // empty')
+CONFIG_CONTENT=$(echo "$INIT" | jq -r '.config_content // empty')
 ```
 
-**If file exists:** Parse and internalize:
-
-- Current position (phase, plan, status)
-- Accumulated decisions (constraints on this execution)
-- Blockers/concerns (things to watch for)
-- Brief alignment status
-
-**If file missing but .planning/ exists:**
-
-```
-STATE.md missing but planning artifacts exist.
-Options:
-1. Reconstruct from existing artifacts
-2. Continue without project state (may lose accumulated context)
-```
-
-**If .planning/ doesn't exist:** Error - project not initialized.
-
-This ensures every execution has full project context.
-
-**Load planning config:**
-
+**Auto-detect gitignored (overrides config):**
 ```bash
-# Check if planning docs should be committed (default: true)
-COMMIT_PLANNING_DOCS=$(cat .planning/config.json 2>/dev/null | grep -o '"commit_docs"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
-# Auto-detect gitignored (overrides config)
 git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
 ```
 
-Store `COMMIT_PLANNING_DOCS` for use in git operations.
+**Error handling:**
+- If `PHASE_FOUND` is `false`: Error — phase directory not found
+- If STATE_CONTENT is empty: Warning — no prior context available
+
+This ensures every execution has full project context, loaded efficiently.
 </step>
 
 <step name="identify_plan">

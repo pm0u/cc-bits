@@ -136,6 +136,40 @@ function resolveModel(profile, agentType) {
   return table[profile] || table.balanced;
 }
 
+function extractFrontmatter(filepath) {
+  const content = safeRead(filepath, '');
+  const match = content.match(/^---\n([\s\S]+?)\n---/);
+  if (!match) return {};
+
+  const yaml = match[1];
+  const result = {};
+  const lines = yaml.split('\n');
+
+  for (const line of lines) {
+    const keyMatch = line.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/);
+    if (!keyMatch) continue;
+
+    const key = keyMatch[1];
+    const value = keyMatch[2].trim();
+
+    if (value.startsWith('[') && value.endsWith(']')) {
+      // Array value
+      result[key] = value.slice(1, -1).split(',').map(s => s.trim()).filter(Boolean);
+    } else if (value === 'true' || value === 'false') {
+      // Boolean value
+      result[key] = value === 'true';
+    } else if (!isNaN(value) && value !== '') {
+      // Number value
+      result[key] = Number(value);
+    } else {
+      // String value
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
+
 // ─── Commands ─────────────────────────────────────────────────────────────────
 
 function cmdInitExecutePhase(cwd, phase, includes) {
@@ -273,6 +307,70 @@ function cmdInitPlanPhase(cwd, phase, includes) {
   console.log(JSON.stringify(result, null, 2));
 }
 
+function cmdPhaseIndex(cwd, phase) {
+  if (!phase) {
+    console.error('ERROR: phase required for phase-index');
+    process.exit(1);
+  }
+
+  const phaseDir = findPhaseDir(cwd, phase);
+
+  if (!phaseDir) {
+    console.log(JSON.stringify({ error: 'Phase directory not found', phase }, null, 2));
+    return;
+  }
+
+  try {
+    const files = fs.readdirSync(phaseDir);
+    const planFiles = files.filter(f => f.match(/-PLAN\.md$/i));
+
+    const plans = planFiles.map(filename => {
+      const planPath = path.join(phaseDir, filename);
+      const frontmatter = extractFrontmatter(planPath);
+      const summaryPath = planPath.replace(/PLAN\.md$/i, 'SUMMARY.md');
+      const hasSummary = pathExists(summaryPath);
+
+      // Extract plan ID from filename (e.g., "03-01" from "03-01-PLAN.md")
+      const planId = filename.replace(/-PLAN\.md$/i, '');
+
+      return {
+        id: planId,
+        filename,
+        path: planPath,
+        wave: frontmatter.wave || 1,
+        autonomous: frontmatter.autonomous !== false,
+        type: frontmatter.type || 'execute',
+        depends_on: frontmatter.depends_on || [],
+        files_modified: frontmatter.files_modified || [],
+        completed: hasSummary,
+        summary_path: hasSummary ? summaryPath : null,
+      };
+    });
+
+    // Group by wave
+    const waves = {};
+    plans.forEach(plan => {
+      const wave = plan.wave;
+      if (!waves[wave]) waves[wave] = [];
+      waves[wave].push(plan.id);
+    });
+
+    const result = {
+      phase: phase,
+      phase_dir: phaseDir,
+      plan_count: plans.length,
+      plans,
+      waves,
+      incomplete: plans.filter(p => !p.completed).map(p => p.id),
+    };
+
+    console.log(JSON.stringify(result, null, 2));
+  } catch (err) {
+    console.error('ERROR reading phase directory:', err.message);
+    process.exit(1);
+  }
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 function parseIncludeFlag(args) {
@@ -308,9 +406,11 @@ function main() {
         console.error('Available: execute-phase, plan-phase');
         process.exit(1);
     }
+  } else if (command === 'phase-index') {
+    cmdPhaseIndex(cwd, cleanArgs[0]);
   } else {
     console.error(`ERROR: Unknown command: ${command}`);
-    console.error('Available: init');
+    console.error('Available: init, phase-index');
     process.exit(1);
   }
 }
