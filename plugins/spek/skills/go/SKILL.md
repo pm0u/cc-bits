@@ -2,12 +2,8 @@
 name: spek:go
 description: Smart router for spec-driven development - analyzes project state and executes next action automatically
 allowed-tools:
-  - Read
   - Bash
-  - Grep
-  - Glob
   - Skill
-  - AskUserQuestion
 ---
 
 <objective>
@@ -15,10 +11,13 @@ Analyze project state and automatically invoke the appropriate next command. Thi
 
 Unlike `/spek:progress` which shows status and suggests commands, `/spek:go` determines and executes the next action directly.
 
-**State-aware routing:** Reads STATE.md and ROADMAP.md to determine current position, then routes to the correct skill (plan-phase, execute-phase, verify-phase, or progress).
+**State-aware routing:** Uses CLI to parse STATE.md and ROADMAP.md, then routes to the correct skill (plan-phase, execute-phase, verify-phase, or progress).
 </objective>
 
 <execution_context>
+Uses CLI delegation (GSD v1.16.0 pattern) for state/roadmap parsing.
+The spek-tools CLI handles all file parsing operations.
+
 @~/.claude/plugins/marketplaces/spek/spek/references/spec-format.md
 @~/.claude/plugins/marketplaces/spek/spek/references/triangle-validation.md
 @~/.claude/plugins/marketplaces/spek/spek/references/ui-brand.md
@@ -50,46 +49,39 @@ Or if you have specs already:
 Exit.
 </step>
 
-<step name="analyze_state">
-**Load and analyze project state:**
+<step name="parse_state">
+**Parse project state using CLI:**
 
 ```bash
-# Check what exists
-test -f .planning/STATE.md && echo "state:yes" || echo "state:no"
-test -f .planning/ROADMAP.md && echo "roadmap:yes" || echo "roadmap:no"
-test -f .planning/PROJECT.md && echo "project:yes" || echo "project:no"
-```
+# Parse state and roadmap via CLI
+STATE=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state get 2>&1)
+ROADMAP=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js roadmap parse 2>&1)
 
-**Missing STATE.md or PROJECT.md:**
+# Check for errors
+if echo "$STATE" | jq -e '.error' >/dev/null 2>&1; then
+  ERROR_MSG=$(echo "$STATE" | jq -r '.error')
 
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- SPEK ► Corrupted State
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if [[ "$ERROR_MSG" == *"not found"* ]]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo " SPEK ► Corrupted State"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo ".planning/ directory exists but missing core files."
+    echo ""
+    echo "Try: /spek:repair-state"
+    exit 1
+  fi
+fi
 
-.planning/ directory exists but missing core files.
-
-Try: /spek:repair-state
-```
-
-Exit.
-
-**Extract current position from STATE.md:**
-
-```bash
-# Read current phase number
-CURRENT_PHASE=$(grep "^Phase:" .planning/STATE.md | head -1 | awk '{print $2}')
-
-# Handle "Phase: 2 of 4" format
-CURRENT_PHASE=$(echo "$CURRENT_PHASE" | sed 's/ .*//')
-
-# Read plan status
-PLAN_LINE=$(grep "^Plan:" .planning/STATE.md | head -1)
-STATUS_LINE=$(grep "^Status:" .planning/STATE.md | head -1)
+# Extract values from parsed state
+CURRENT_PHASE=$(echo "$STATE" | jq -r '.phase')
+PLAN=$(echo "$STATE" | jq -r '.plan')
+STATUS=$(echo "$STATE" | jq -r '.status')
+TOTAL_PHASES=$(echo "$ROADMAP" | jq -r '.totalPhases')
 
 echo "Current Phase: $CURRENT_PHASE"
-echo "Plan: $PLAN_LINE"
-echo "Status: $STATUS_LINE"
+echo "Plan: $PLAN"
+echo "Status: $STATUS"
 echo ""
 ```
 </step>
@@ -98,43 +90,42 @@ echo ""
 **Determine next action based on state:**
 
 ```bash
-# Check if phase has plans
-PHASE_DIR=$(find .planning/phases -type d -name "*${CURRENT_PHASE}*" | head -1)
+# Check if phase directory exists
+PHASE_DIR=$(find .planning/phases -type d -name "*${CURRENT_PHASE}*" 2>/dev/null | head -1)
 
 if [ -z "$PHASE_DIR" ]; then
   # No phase directory → need to plan
   ACTION="plan"
   echo "Action: Plan phase $CURRENT_PHASE (no phase directory)"
 
-elif [[ "$PLAN_LINE" == *"Not started"* ]]; then
+elif [[ "$PLAN" == *"Not started"* ]]; then
   # Phase exists but not planned
   ACTION="plan"
   echo "Action: Plan phase $CURRENT_PHASE (not started)"
 
-elif [[ "$STATUS_LINE" == *"Ready to execute"* ]] || [[ "$PLAN_LINE" == *"Ready to execute"* ]]; then
+elif [[ "$STATUS" == *"Ready to execute"* ]] || [[ "$PLAN" == *"Ready to execute"* ]]; then
   # Plans exist, ready to execute
   ACTION="execute"
   echo "Action: Execute phase $CURRENT_PHASE"
 
-elif [[ "$STATUS_LINE" == *"Execution complete"* ]] || [[ "$STATUS_LINE" == *"Phase complete"* ]]; then
+elif [[ "$STATUS" == *"Execution complete"* ]] || [[ "$STATUS" == *"Phase complete"* ]]; then
   # Execution done, need verification
   ACTION="verify"
   echo "Action: Verify phase $CURRENT_PHASE"
 
-elif [[ "$STATUS_LINE" == *"verified"* ]] || [[ "$STATUS_LINE" == *"Phase verified"* ]]; then
+elif [[ "$STATUS" == *"verified"* ]] || [[ "$STATUS" == *"Phase verified"* ]]; then
   # Phase verified and complete - check if there are more phases
-  TOTAL_PHASES=$(grep -c "^### Phase" .planning/ROADMAP.md)
+  CURRENT_PHASE_INT=$(echo "$CURRENT_PHASE" | sed 's/\..*//')  # Handle decimals
 
-  if [ "$CURRENT_PHASE" -lt "$TOTAL_PHASES" ]; then
+  if [ "$CURRENT_PHASE_INT" -lt "$TOTAL_PHASES" ]; then
     # More phases to go
-    NEXT_PHASE=$((CURRENT_PHASE + 1))
+    NEXT_PHASE=$((CURRENT_PHASE_INT + 1))
     echo "Phase $CURRENT_PHASE complete. Moving to Phase $NEXT_PHASE..."
 
-    # Update STATE.md to next phase
-    sed -i.bak "s/^Phase: ${CURRENT_PHASE}/Phase: ${NEXT_PHASE}/" .planning/STATE.md
-    sed -i.bak "s/^Plan:.*/Plan: Not started/" .planning/STATE.md
-    sed -i.bak "s/^Status:.*/Status: Ready to plan/" .planning/STATE.md
-    rm .planning/STATE.md.bak
+    # Update STATE.md to next phase via CLI
+    node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state update phase "$NEXT_PHASE" >/dev/null
+    node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state update plan "Not started" >/dev/null
+    node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state update status "Ready to plan" >/dev/null
 
     ACTION="plan"
     CURRENT_PHASE=$NEXT_PHASE
@@ -234,7 +225,7 @@ Exit.
 - [ ] If phase needs planning → invokes /spek:plan-phase
 - [ ] If phase ready to execute → invokes /spek:execute-phase
 - [ ] If phase needs verification → invokes /spek:verify-phase
-- [ ] If phase complete → moves to next phase automatically
+- [ ] If phase complete → moves to next phase automatically (via CLI state updates)
 - [ ] If all phases complete → shows milestone complete message
 - [ ] If unclear state → invokes /spek:progress
 </success_criteria>
@@ -254,22 +245,17 @@ Phase N: Ready to execute → /spek:execute-phase N
   ↓
 Phase N: Execution complete → /spek:verify-phase N
   ↓
-Phase N: Verified → Update STATE.md → Phase N+1
+Phase N: Verified → CLI updates STATE.md → Phase N+1
   ↓
 Repeat until all phases done
   ↓
 All complete → suggest milestone audit/complete
 ```
 
-**Key Differences from fuckit:go:**
-- Checks for both specs/ and .planning/ (dual structure)
-- Adds verify-phase step (spec triangle validation)
-- References spec-format and triangle-validation
-
-**Integration Points:**
-- Works with /spek:define (creates specs/)
-- Works with /spek:new-milestone (creates .planning/)
-- Routes to /spek:plan-phase (includes test derivation)
-- Routes to /spek:execute-phase (includes preflight/postflight)
-- Routes to /spek:verify-phase (validates triangle, updates specs)
+**Optimization (v2.0.0-alpha.2):**
+- Replaced inline grep/awk/sed with spek-tools CLI
+- State parsing: `state get` returns JSON
+- Roadmap parsing: `roadmap parse` returns JSON
+- State updates: `state update` commands instead of sed
+- Reduced complexity, improved reliability
 </notes>
