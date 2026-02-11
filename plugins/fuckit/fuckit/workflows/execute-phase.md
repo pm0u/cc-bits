@@ -19,31 +19,55 @@ Validate state consistency before proceeding.
 
 <process>
 
-<step name="resolve_model_profile" priority="first">
-Read model profile for agent spawning using reliable JSON parsing:
+<step name="initialize" priority="first">
+Load all context in one call (v1.15.0 optimization - read files once, not twice):
 
 ```bash
-# Use Node.js for reliable JSON parsing (see config-parsing.md)
-MODEL_PROFILE=$(node -e "
-  const fs = require('fs');
-  try {
-    const c = JSON.parse(fs.readFileSync('.planning/config.json'));
-    console.log(c.model_profile || 'balanced');
-  } catch { console.log('balanced'); }
-" 2>/dev/null)
+INIT=$(node ~/.claude/plugins/marketplaces/fuckit/bin/fuckit-tools.js init execute-phase "${PHASE_ARG}" --include=state,config,roadmap)
 ```
 
-Default to "balanced" if not set or config missing.
+Parse JSON for context values:
 
-**Model lookup table (project-wide defaults):**
+```bash
+# Models (resolved from profile)
+EXECUTOR_MODEL=$(echo "$INIT" | jq -r '.models.executor')
+VERIFIER_MODEL=$(echo "$INIT" | jq -r '.models.verifier')
 
-| Agent | quality | balanced | budget |
-|-------|---------|----------|--------|
-| fuckit:executor | opus | sonnet | sonnet |
-| fuckit:verifier | sonnet | sonnet | haiku |
-| general-purpose | — | — | — |
+# Config flags
+MODEL_PROFILE=$(echo "$INIT" | jq -r '.config.model_profile')
+COMMIT_PLANNING_DOCS=$(echo "$INIT" | jq -r '.config.commit_docs')
+PARALLELIZATION=$(echo "$INIT" | jq -r '.config.parallelization')
+BRANCHING_STRATEGY=$(echo "$INIT" | jq -r '.config.branching_strategy')
+PHASE_BRANCH_TEMPLATE=$(echo "$INIT" | jq -r '.config.phase_branch_template')
+MILESTONE_BRANCH_TEMPLATE=$(echo "$INIT" | jq -r '.config.milestone_branch_template')
+VERIFIER_ENABLED=$(echo "$INIT" | jq -r '.config.verifier')
 
-**Per-plan override:**
+# Phase info
+PHASE_FOUND=$(echo "$INIT" | jq -r '.phase.found')
+PHASE_DIR=$(echo "$INIT" | jq -r '.phase.dir')
+PHASE_NUMBER=$(echo "$INIT" | jq -r '.phase.number')
+
+# File existence
+STATE_EXISTS=$(echo "$INIT" | jq -r '.files.state_exists')
+ROADMAP_EXISTS=$(echo "$INIT" | jq -r '.files.roadmap_exists')
+
+# File contents (already read via --include)
+STATE_CONTENT=$(echo "$INIT" | jq -r '.state_content // empty')
+CONFIG_CONTENT=$(echo "$INIT" | jq -r '.config_content // empty')
+ROADMAP_CONTENT=$(echo "$INIT" | jq -r '.roadmap_content // empty')
+```
+
+**Auto-detect gitignored (overrides config):**
+```bash
+git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
+```
+
+**Error handling:**
+- If `PHASE_FOUND` is `false`: Error — phase directory not found
+- If `STATE_EXISTS` is `false` but `.planning/` exists: Offer to reconstruct or continue
+- If `.planning/` doesn't exist: Error — project not initialized
+
+**Per-plan model override:**
 
 When spawning executors, check each plan for model override:
 
@@ -53,82 +77,23 @@ PLAN_MODEL=$(grep "^model:" "$PLAN_FILE" | cut -d: -f2 | tr -d ' "')
 
 if [ -n "$PLAN_MODEL" ] && echo "$PLAN_MODEL" | grep -qE "^(opus|sonnet|haiku)$"; then
   # Valid per-plan override
-  EXECUTOR_MODEL="$PLAN_MODEL"
+  EXECUTOR_MODEL_FOR_PLAN="$PLAN_MODEL"
   echo "Plan $PLAN_ID uses model override: $PLAN_MODEL"
 else
-  # Fall back to profile
-  EXECUTOR_MODEL=$(lookup_from_table "fuckit:executor" "$MODEL_PROFILE")
+  # Fall back to profile default
+  EXECUTOR_MODEL_FOR_PLAN="$EXECUTOR_MODEL"
 fi
 ```
 
 Store resolved model per-plan for use in Task calls.
 </step>
 
-<step name="load_project_state">
-Before any operation, read project state:
-
-```bash
-cat .planning/STATE.md 2>/dev/null
-```
-
-**If file exists:** Parse and internalize:
-- Current position (phase, plan, status)
-- Accumulated decisions (constraints on this execution)
-- Blockers/concerns (things to watch for)
-
-**If file missing but .planning/ exists:**
-```
-STATE.md missing but planning artifacts exist.
-Options:
-1. Reconstruct from existing artifacts
-2. Continue without project state (may lose accumulated context)
-```
-
-**If .planning/ doesn't exist:** Error - project not initialized.
-
-**Load all config values using reliable JSON parsing:**
-
-```bash
-# Load multiple config values in one Node.js call (efficient)
-eval $(node -e "
-  const fs = require('fs');
-  try {
-    const c = JSON.parse(fs.readFileSync('.planning/config.json'));
-    console.log('COMMIT_PLANNING_DOCS=' + (c.planning?.commit_docs !== false));
-    console.log('PARALLELIZATION=' + (c.parallelization?.enabled !== false));
-    console.log('BRANCHING_STRATEGY=' + (c.git?.branching_strategy || 'none'));
-    console.log('PHASE_BRANCH_TEMPLATE=\"' + (c.git?.phase_branch_template || 'gsd/phase-{phase}-{slug}') + '\"');
-    console.log('MILESTONE_BRANCH_TEMPLATE=\"' + (c.git?.milestone_branch_template || 'gsd/{milestone}-{slug}') + '\"');
-  } catch {
-    console.log('COMMIT_PLANNING_DOCS=true');
-    console.log('PARALLELIZATION=true');
-    console.log('BRANCHING_STRATEGY=none');
-    console.log('PHASE_BRANCH_TEMPLATE=\"gsd/phase-{phase}-{slug}\"');
-    console.log('MILESTONE_BRANCH_TEMPLATE=\"gsd/{milestone}-{slug}\"');
-  }
-" 2>/dev/null)
-
-# Auto-detect gitignored (overrides config)
-git check-ignore -q .planning 2>/dev/null && COMMIT_PLANNING_DOCS=false
-```
-
-Store values for use in subsequent steps:
-- `COMMIT_PLANNING_DOCS`: Whether to commit .planning/ files
-- `PARALLELIZATION`: Whether to run plans in parallel within waves
-- `BRANCHING_STRATEGY`: Branch strategy (none, phase, milestone)
-- `PHASE_BRANCH_TEMPLATE`: Template for phase branches
-- `MILESTONE_BRANCH_TEMPLATE`: Template for milestone branches
-
-Store `BRANCHING_STRATEGY` and templates for use in branch creation step.
-</step>
-
 <step name="validate_state">
 **Quick state validation before proceeding:**
 
 ```bash
-# Check position matches reality
-CLAIMED_PLAN=$(grep -E "^Plan:" .planning/STATE.md 2>/dev/null | grep -oE "[0-9]+" | head -1 || echo "1")
-PHASE_DIR=$(ls -d .planning/phases/${PHASE_ARG}-* .planning/phases/0${PHASE_ARG}-* 2>/dev/null | head -1)
+# Parse position from STATE_CONTENT (already loaded via --include)
+CLAIMED_PLAN=$(echo "$STATE_CONTENT" | grep -E "^Plan:" | grep -oE "[0-9]+" | head -1 || echo "1")
 ACTUAL_SUMMARIES=$(ls -1 "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
 
 # Check for uncommitted changes
@@ -171,7 +136,8 @@ Use AskUserQuestion:
 
 ```bash
 # Check for plans that have hit circuit breaker (3+ failures)
-TRIPPED_PLANS=$(grep -A10 "### Recent Failures" .planning/STATE.md | grep -E "^\| [0-9]" | awk '$3 >= 3 {print $1}')
+# Use STATE_CONTENT (already loaded)
+TRIPPED_PLANS=$(echo "$STATE_CONTENT" | grep -A10 "### Recent Failures" | grep -E "^\| [0-9]" | awk '$3 >= 3 {print $1}')
 ```
 
 If any plans in current phase have tripped the circuit breaker:
@@ -226,9 +192,9 @@ fi
 
 ```bash
 if [ "$BRANCHING_STRATEGY" = "milestone" ]; then
-  # Get current milestone info from ROADMAP.md
-  MILESTONE_VERSION=$(grep -oE 'v[0-9]+\.[0-9]+' .planning/ROADMAP.md | head -1 || echo "v1.0")
-  MILESTONE_NAME=$(grep -A1 "## .*$MILESTONE_VERSION" .planning/ROADMAP.md | tail -1 | sed 's/.*- //' | cut -d'(' -f1 | tr -d ' ' || echo "milestone")
+  # Get current milestone info from ROADMAP_CONTENT (already loaded)
+  MILESTONE_VERSION=$(echo "$ROADMAP_CONTENT" | grep -oE 'v[0-9]+\.[0-9]+' | head -1 || echo "v1.0")
+  MILESTONE_NAME=$(echo "$ROADMAP_CONTENT" | grep -A1 "## .*$MILESTONE_VERSION" | tail -1 | sed 's/.*- //' | cut -d'(' -f1 | tr -d ' ' || echo "milestone")
 
   # Create slug
   MILESTONE_SLUG=$(echo "$MILESTONE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
@@ -382,10 +348,9 @@ Execute each wave in sequence. Autonomous plans within a wave run in parallel **
    Before spawning, read file contents. The `@` syntax does not work across Task() boundaries - content must be inlined.
 
    ```bash
-   # Read each plan in the wave
+   # Read only the specific plan file
+   # STATE_CONTENT and CONFIG_CONTENT already loaded via --include
    PLAN_CONTENT=$(cat "{plan_path}")
-   STATE_CONTENT=$(cat .planning/STATE.md)
-   CONFIG_CONTENT=$(cat .planning/config.json 2>/dev/null)
    ```
 
    **If `PARALLELIZATION=true` (default):** Use Task tool with multiple parallel calls.
