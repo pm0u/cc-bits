@@ -23,7 +23,7 @@ Transform a feature idea or PROJECT.md into a comprehensive SPEC.md ("base spek 
 5. Create SPEC.md with all sections ("base spek state")
 6. Auto-route to /spek:new-milestone to begin development
 
-**Output:** `specs/{feature}/SPEC.md` + automatic routing to fuckit workflow
+**Output:** `specs/{feature}/SPEC.md` + automatic routing to shipit workflow
 </objective>
 
 <execution_context>
@@ -37,7 +37,7 @@ Input can be:
 - File reference: @docs/PROJECT.md
 - Detailed specification
 
-The goal is "base spek state" - SPEC.md comprehensive enough to feed into fuckit workflow.
+The goal is "base spek state" - SPEC.md comprehensive enough to feed into shipit workflow.
 </context>
 
 <process>

@@ -6,33 +6,18 @@
   },
   "metadata": {
     "description": "A collection of tools I like",
-    "version": "1.3.0"
+    "version": "1.4.0"
   },
   "plugins": [
     {
-      "name": "fuckit",
-      "source": "./plugins/fuckit",
-      "description": "FUCKIT - A meta-prompting, context engineering and spec-driven development system for Claude Code"
-    },
-    {
-      "name": "huckit",
-      "source": "./plugins/huckit",
-      "description": "Core skills library for Claude Code: TDD, debugging, collaboration patterns, and proven techniques"
-    },
-    {
-      "name": "sendit",
-      "source": "./plugins/sendit",
-      "description": "Spec-Driven Development for Claude Code — specs are the source of truth, not process artifacts"
-    },
-    {
-      "name": "flow",
-      "source": "./plugins/flow",
-      "description": "Flow - Guided development combining FUCKIT's deep discussion with SENDIT's spec-driven clarity"
+      "name": "shipit",
+      "source": "./plugins/shipit",
+      "description": "SHIPIT - A meta-prompting, context engineering and spec-driven development system for Claude Code"
     },
     {
       "name": "spek",
       "source": "./plugins/spek",
-      "description": "Spec-driven development with triangle validation (SPEC ↔ tests ↔ code) and proven FUCKIT orchestration"
+      "description": "Spec-driven development with triangle validation (SPEC ↔ tests ↔ code) and proven SHIPIT orchestration"
     },
     {
       "name": "statusline",

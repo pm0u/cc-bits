@@ -1,6 +1,6 @@
 # Triangle Validation
 
-The Spec ↔ Tests ↔ Code triangle is sendit's core verification model. Every feature maintains three artifacts that must stay consistent:
+The Spec ↔ Tests ↔ Code triangle is spek's core verification model. Every feature maintains three artifacts that must stay consistent:
 
 ```
         SPEC.md

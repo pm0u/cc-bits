@@ -1,7 +1,7 @@
 {
   "name": "spek",
-  "version": "3.2.0",
-  "description": "Spec-driven development with triangle validation (SPEC ↔ tests ↔ code) and proven FUCKIT orchestration.",
+  "version": "3.2.1",
+  "description": "Spec-driven development with triangle validation (SPEC ↔ tests ↔ code) and proven SHIPIT orchestration.",
   "keywords": [
     "claude",
     "claude-code",
@@ -9,8 +9,7 @@
     "spec-driven-development",
     "triangle-validation",
     "tdd",
-    "sendit",
-    "fuckit"
+    "shipit"
   ],
   "author": "",
   "license": "MIT"

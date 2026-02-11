@@ -1,6 +1,6 @@
 # Spec Format Standard
 
-Everything in sendit revolves around specs. This document defines the canonical formats for SPEC.md files and INDEX.md files.
+Everything in spek revolves around specs. This document defines the canonical formats for SPEC.md files and INDEX.md files.
 
 ## Spec Tree Structure
 
@@ -110,7 +110,7 @@ A lightweight state file at `specs/{feature}/PROGRESS.md` that tracks flow posit
 - If present at session start → resume from recorded state
 
 **On resume:**
-1. `/sendit:go` detects `specs/{feature}/PROGRESS.md`
+1. `/spek:go` detects `specs/{feature}/PROGRESS.md`
 2. Reads current step and task status
 3. Skips completed steps, resumes from current step
 4. For execution: skips completed tasks, resumes from first pending task
@@ -255,8 +255,8 @@ specs/
 
 For existing codebases without specs:
 
-1. User works on feature X → `/sendit:go "modify feature X"`
-2. Sendit checks `specs/X/SPEC.md` — doesn't exist
+1. User works on feature X → `/spek:go "modify feature X"`
+2. Spek checks `specs/X/SPEC.md` — doesn't exist
 3. Options:
    a. **Quick spec**: Generate minimal spec from existing code via reverse-spec, then proceed
    b. **Full spec**: Brainstorm session to write proper spec first
@@ -273,4 +273,4 @@ When a spec grows too large (>200 lines of requirements or >10 acceptance criter
 4. Parent SPEC.md adds dependency reference to child
 5. Update INDEX.md to reflect new structure
 
-The `/sendit:spec split` command automates this.
+The `/spek:spec split` command automates this.

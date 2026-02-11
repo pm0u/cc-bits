@@ -13,7 +13,7 @@ allowed-tools:
 ---
 
 <objective>
-Bridge from spec-driven requirements (SPEC.md) to fuckit development workflow.
+Bridge from spec-driven requirements (SPEC.md) to shipit development workflow.
 
 **Reads:** `specs/{feature}/SPEC.md` (created by spek:define)
 **Creates:**

@@ -2,7 +2,7 @@
 
 **Version:** 3.2.0
 
-Spec-driven development workflow that enforces the spec triangle: **SPEC <-> tests <-> code**. Combines comprehensive spec creation with proven FUCKIT orchestration and automatic triangle validation.
+Spec-driven development workflow that enforces the spec triangle: **SPEC <-> tests <-> code**. Combines comprehensive spec creation with proven SHIPIT orchestration and automatic triangle validation.
 
 ```
         SPEC.md
@@ -18,7 +18,7 @@ Spek ensures your implementation matches your specification through **active enf
 1. **Interactive Spec Creation** - Deep discussion to create comprehensive SPEC.md files
 2. **Test Derivation** - Automatically writes tests from acceptance criteria BEFORE implementation
 3. **Preflight Validation** - Checks for conflicts before execution starts
-4. **Implementation** - Proven FUCKIT workflow (research -> plan -> execute -> verify)
+4. **Implementation** - Proven SHIPIT workflow (research -> plan -> execute -> verify)
 5. **Postflight Validation** - Verifies the triangle is consistent after implementation
 6. **Spec Synchronization** - Updates SPEC.md Files sections as code evolves
 7. **Cross-Phase Learning** - Accumulates lessons from failures/deviations across phases
@@ -309,7 +309,7 @@ your-project/
 - One-off bug fixes
 - Solo projects where specs feel like overhead
 
-For lightweight tasks, use `/spek:quick` or stick with FUCKIT.
+For lightweight tasks, use `/spek:quick` or stick with SHIPIT.
 
 ## Version History
 
@@ -336,8 +336,8 @@ For lightweight tasks, use `/spek:quick` or stick with FUCKIT.
 **2.x**
 - Hierarchical spec support
 - Interactive spec creation
-- Bridge to FUCKIT workflow
+- Bridge to SHIPIT workflow
 
 **1.x**
 - Initial spec-driven concepts
-- Basic FUCKIT integration
+- Basic SHIPIT integration

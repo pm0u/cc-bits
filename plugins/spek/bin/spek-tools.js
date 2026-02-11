@@ -6,7 +6,7 @@
  * Based on GSD v1.15.0 optimization pattern: read files once, not twice.
  * Based on GSD v1.16.0 delegation pattern: CLI handles mechanical operations.
  *
- * Duplicates shared code from fuckit-tools.js for plugin independence.
+ * Duplicates shared code from shipit-tools.js for plugin independence.
  *
  * Usage: node spek-tools.js <command> [args]
  *
@@ -57,7 +57,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// ─── Helpers (Duplicated from fuckit-tools.js) ───────────────────────────────
+// ─── Helpers (Duplicated from shipit-tools.js) ───────────────────────────────
 
 function safeRead(filepath, defaultVal = null) {
   try {
@@ -612,7 +612,7 @@ function cmdSpecDetectSplit(content) {
   }, null, 2));
 }
 
-// ─── Phase Management (Duplicated from fuckit-tools.js) ──────────────────────
+// ─── Phase Management (Duplicated from shipit-tools.js) ──────────────────────
 
 function cmdPhaseAdd(cwd, description) {
   if (!description) {

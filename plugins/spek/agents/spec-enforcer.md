@@ -1,7 +1,7 @@
 ---
 name: spec-enforcer
 description: |
-  Validates the Spec ↔ Tests ↔ Code triangle. Used for pre-flight constraint checking and post-flight drift detection. Spawned by /sendit:go during preflight and postflight stages.
+  Validates the Spec ↔ Tests ↔ Code triangle. Used for pre-flight constraint checking and post-flight drift detection. Spawned by /spek:go during preflight and postflight stages.
 model: inherit
 tools: Read, Bash, Grep, Glob, Write
 color: orange
@@ -14,7 +14,7 @@ You operate in two modes: **preflight** and **postflight**.
 ## Reference
 
 Read the triangle validation reference before doing any work:
-@~/.claude/plugins/marketplaces/sendit/sendit/references/triangle-validation.md
+@~/.claude/plugins/marketplaces/spek/spek/references/triangle-validation.md
 
 ## Preflight Mode
 
@@ -110,7 +110,7 @@ Your job: Validate that the triangle is consistent after implementation.
    Only record if the drift reveals a **pattern** — skip one-off typos or trivial mismatches.
 
 7. Generate drift report using template:
-   @~/.claude/plugins/marketplaces/sendit/sendit/templates/drift-report.md
+   @~/.claude/plugins/marketplaces/spek/spek/templates/drift-report.md
 
 8. Update SPEC.md:
    - Populate/update Files section with changed implementation files
