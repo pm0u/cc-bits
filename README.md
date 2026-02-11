@@ -18,14 +18,14 @@ Enhanced statusline for Claude Code showing model, directory, context usage, and
 
 ## Installation
 
-Install individual plugins or the full marketplace:
-
 ```bash
-# Full marketplace
-claude mcp add-from-claude-plugin https://github.com/pm0u/cc-bits
+# Add the marketplace
+claude plugin marketplace add pm0u/cc-bits
 
-# Individual plugin
-claude mcp add-from-claude-plugin https://github.com/pm0u/cc-bits/plugins/shipit
+# Install a plugin
+claude plugin install shipit@pm0u-cc-bits
+claude plugin install spek@pm0u-cc-bits
+claude plugin install statusline@pm0u-cc-bits
 ```
 
 ## License
