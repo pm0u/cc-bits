@@ -2,10 +2,7 @@
 name: spek:status
 description: Show visual state diagram of current position in the project hierarchy
 allowed-tools:
-  - Read
   - Bash
-  - Grep
-  - Glob
 ---
 
 <objective>
@@ -14,6 +11,10 @@ Display a clear visual representation of where you are in the project hierarchy:
 
 Shows progress at each level with visual indicators.
 </objective>
+
+<execution_context>
+Uses CLI delegation (GSD v1.16.0 pattern) for state/roadmap parsing.
+</execution_context>
 
 <process>
 
@@ -34,36 +35,49 @@ Exit.
 </step>
 
 <step name="gather_data">
-**Collect all status data:**
+**Collect all status data via CLI:**
 
 ```bash
-# Project info
-PROJECT_NAME=$(grep -m1 "^# " .planning/PROJECT.md 2>/dev/null | sed 's/^# //')
+# Parse state and roadmap via CLI
+STATE=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state get 2>&1)
+ROADMAP=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js roadmap parse 2>&1)
 
-# Milestone info (from ROADMAP.md header or MILESTONES.md)
+# Extract values
+CURRENT_PHASE=$(echo "$STATE" | jq -r '.phase')
+TOTAL_PHASES=$(echo "$ROADMAP" | jq -r '.totalPhases')
+
+# Get current phase details
+PHASE_INFO=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js roadmap get-phase "$CURRENT_PHASE" 2>&1)
+PHASE_NAME=$(echo "$PHASE_INFO" | jq -r '.name')
+
+# Project and milestone info
+PROJECT_NAME=$(grep -m1 "^# " .planning/PROJECT.md 2>/dev/null | sed 's/^# //' || echo "Project")
 MILESTONE=$(grep -oE "v[0-9]+\.[0-9]+" .planning/ROADMAP.md 2>/dev/null | head -1 || echo "v1.0")
 
-# Phase info
-TOTAL_PHASES=$(grep -cE "^### Phase [0-9]+" .planning/ROADMAP.md 2>/dev/null || echo "0")
-CURRENT_PHASE=$(grep -E "^Phase:" .planning/STATE.md 2>/dev/null | grep -oE "[0-9]+" | head -1 || echo "1")
-PHASE_NAME=$(grep -A1 "### Phase $CURRENT_PHASE" .planning/ROADMAP.md 2>/dev/null | tail -1 | sed 's/.*- //' | cut -d'(' -f1 || echo "Unknown")
-
 # Find phase directory
-PHASE_DIR=$(ls -d .planning/phases/${CURRENT_PHASE}-* .planning/phases/0${CURRENT_PHASE}-* 2>/dev/null | head -1)
+PHASE_DIR=$(find .planning/phases -type d -name "*${CURRENT_PHASE}-*" 2>/dev/null | head -1)
 
 # Plan info (in current phase)
-TOTAL_PLANS=$(ls -1 "$PHASE_DIR"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
-COMPLETED_PLANS=$(ls -1 "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
-CURRENT_PLAN=$((COMPLETED_PLANS + 1))
+if [ -n "$PHASE_DIR" ]; then
+  TOTAL_PLANS=$(ls -1 "$PHASE_DIR"/*-PLAN.md 2>/dev/null | wc -l | tr -d ' ')
+  COMPLETED_PLANS=$(ls -1 "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null | wc -l | tr -d ' ')
+  CURRENT_PLAN=$((COMPLETED_PLANS + 1))
 
-# Task info (from current plan if exists)
-if [ "$CURRENT_PLAN" -le "$TOTAL_PLANS" ]; then
-  CURRENT_PLAN_FILE=$(ls -1 "$PHASE_DIR"/*-PLAN.md 2>/dev/null | sed -n "${CURRENT_PLAN}p")
-  TOTAL_TASKS=$(grep -c "<task" "$CURRENT_PLAN_FILE" 2>/dev/null || echo "0")
-  PLAN_NAME=$(grep -m1 "^# " "$CURRENT_PLAN_FILE" 2>/dev/null | sed 's/^# //' || basename "$CURRENT_PLAN_FILE" .md)
+  # Task info (from current plan if exists)
+  if [ "$CURRENT_PLAN" -le "$TOTAL_PLANS" ]; then
+    CURRENT_PLAN_FILE=$(ls -1 "$PHASE_DIR"/*-PLAN.md 2>/dev/null | sed -n "${CURRENT_PLAN}p")
+    TOTAL_TASKS=$(grep -c "<task" "$CURRENT_PLAN_FILE" 2>/dev/null || echo "0")
+    PLAN_NAME=$(grep -m1 "^# " "$CURRENT_PLAN_FILE" 2>/dev/null | sed 's/^# //' || basename "$CURRENT_PLAN_FILE" .md)
+  else
+    TOTAL_TASKS="0"
+    PLAN_NAME="(none pending)"
+  fi
 else
+  TOTAL_PLANS="0"
+  COMPLETED_PLANS="0"
+  CURRENT_PLAN="1"
   TOTAL_TASKS="0"
-  PLAN_NAME="(none pending)"
+  PLAN_NAME="(not planned)"
 fi
 
 # Overall progress
@@ -78,141 +92,59 @@ COMPLETED_PLANS_ALL=$(find .planning/phases -name "*-SUMMARY.md" 2>/dev/null | w
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  {PROJECT_NAME}                                             │
-│  Milestone: {MILESTONE}                                     │
+│  {COMPLETED_PLANS_ALL}/{TOTAL_PLANS_ALL} plans complete    │
 └─────────────────────────────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────┐
-│  PHASES                                                     │
-│  {render_phase_progress}                                    │
-│                                                             │
-│  ■ ■ ■ □ □ □    Phase {CURRENT_PHASE}/{TOTAL_PHASES}       │
-│        ▲                                                    │
-│        └── {PHASE_NAME}                                     │
-└─────────────────────────────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────┐
-│  PLANS (Phase {CURRENT_PHASE})                              │
-│  {render_plan_progress}                                     │
-│                                                             │
-│  ■ ■ □ □    Plan {CURRENT_PLAN}/{TOTAL_PLANS}              │
-│      ▲                                                      │
-│      └── {PLAN_NAME}                                        │
-└─────────────────────────────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────┐
-│  TASKS (Plan {CURRENT_PLAN})                                │
-│                                                             │
-│  □ □ □    {TOTAL_TASKS} tasks                              │
-│  ▲                                                          │
-│  └── Ready to execute                                       │
-└─────────────────────────────────────────────────────────────┘
-
-Overall: {COMPLETED_PLANS_ALL}/{TOTAL_PLANS_ALL} plans complete ({percentage}%)
+    │
+    ├─ Milestone: {MILESTONE}
+    │   │
+    │   ├─ Phase {CURRENT_PHASE}/{TOTAL_PHASES}: {PHASE_NAME}
+    │   │   {COMPLETED_PLANS}/{TOTAL_PLANS} plans complete
+    │   │   │
+    │   │   ├─ Plan {CURRENT_PLAN}: {PLAN_NAME}
+    │   │   │   {TOTAL_TASKS} tasks
+    │   │   │
+    │   │   └─ Status: {STATUS from STATE}
+    │   │
+    │   └─ Next: Phase {CURRENT_PHASE + 1} (or "Complete")
+    │
+    └─ Use /spek:progress for detailed view
 ```
 
-**Progress bar rendering:**
-- Use `■` for completed items
-- Use `□` for pending items
-- Use `▶` for current item (if in progress)
-- Maximum 10 squares, scale if needed
-
-**Calculate percentage:**
-```
-percentage = (COMPLETED_PLANS_ALL / TOTAL_PLANS_ALL) * 100
-```
+Format with proper indentation and visual tree characters.
 </step>
 
 <step name="status_indicators">
-**Add status indicators based on state:**
+**Add visual status indicators:**
 
-Check for special conditions and add indicators:
+- ✓ for completed items
+- ▶ for current/active items
+- ○ for pending items
+- ⚠ if blockers exist
 
-```bash
-# Blockers
-BLOCKERS=$(grep -A5 "## Blockers" .planning/STATE.md 2>/dev/null | grep -c "^-" || echo "0")
-
-# Verification gaps
-GAPS=$(grep -l "status: gaps_found" .planning/phases/*/*-VERIFICATION.md 2>/dev/null | wc -l | tr -d ' ')
-
-# Pending todos
-TODOS=$(ls .planning/todos/pending/*.md 2>/dev/null | wc -l | tr -d ' ')
-
-# Active debug
-DEBUG=$(ls .planning/debug/*.md 2>/dev/null | grep -v resolved | wc -l | tr -d ' ')
+Example:
 ```
-
-**If any exist, append:**
-
-```
-─────────────────────────────────────────────────────────────
-
-⚠️  Attention:
-{if BLOCKERS > 0}  • {BLOCKERS} blocker(s) recorded
-{if GAPS > 0}      • {GAPS} phase(s) with verification gaps
-{if TODOS > 0}     • {TODOS} pending todo(s)
-{if DEBUG > 0}     • {DEBUG} active debug session(s)
-```
-</step>
-
-<step name="quick_actions">
-**Show quick actions:**
-
-```
-─────────────────────────────────────────────────────────────
-
-Quick Actions:
-  /spek:go        → Auto-continue with next action
-  /spek:progress  → Detailed status with routing
+│   ├─ ✓ Phase 1: Foundation (complete)
+│   ├─ ▶ Phase 2: Core Features (3/5 plans)
+│   └─ ○ Phase 3: Polish (pending)
 ```
 </step>
 
 </process>
 
-<output_example>
-```
-┌─────────────────────────────────────────────────────────────┐
-│  TaskMaster Pro                                             │
-│  Milestone: v1.0                                            │
-└─────────────────────────────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────┐
-│  PHASES                                                     │
-│                                                             │
-│  ■ ■ ▶ □ □    Phase 3/5: Authentication                    │
-└─────────────────────────────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────┐
-│  PLANS (Phase 3)                                            │
-│                                                             │
-│  ■ ▶ □ □    Plan 2/4: JWT Token Service                    │
-└─────────────────────────────────────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────────────┐
-│  TASKS (Plan 2)                                             │
-│                                                             │
-│  □ □ □    3 tasks pending                                   │
-└─────────────────────────────────────────────────────────────┘
-
-Overall: 6/15 plans complete (40%)
-
-─────────────────────────────────────────────────────────────
-
-Quick Actions:
-  /spek:go        → Auto-continue with next action
-  /spek:progress  → Detailed status with routing
-```
-</output_example>
-
 <success_criteria>
-- [ ] Visual hierarchy clearly shows project structure
-- [ ] Current position highlighted at each level
-- [ ] Progress indicators accurate
-- [ ] Special conditions flagged
-- [ ] Quick actions provided
+- [ ] Visual hierarchy clearly shows nesting: Project → Milestone → Phase → Plan → Task
+- [ ] Current position highlighted with ▶ indicator
+- [ ] Progress shown at each level (X/Y complete)
+- [ ] Status from STATE.md reflected
+- [ ] Compact single-screen view
+- [ ] Suggests /spek:progress for detailed view
 </success_criteria>
+
+<notes>
+**Optimization (v2.0.0-alpha.2):**
+- Replaced grep/sed/find with spek-tools CLI where possible
+- State parsing: `state get` returns JSON
+- Roadmap parsing: `roadmap parse` + `get-phase` returns JSON
+- More reliable parsing, consistent with other skills
+- Visual tree structure remains as-is (presentation logic)
+</notes>
