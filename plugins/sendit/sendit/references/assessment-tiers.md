@@ -12,7 +12,7 @@ Before determining weight, determine whether the task is a single spec or a spec
 |--------|---------|
 | Multiple pages/views/screens | "build a site with index, detail, and settings pages" |
 | Multiple independent features | "add auth and a dashboard" |
-| "Build an app/site/system" language | "create an Astro micro site for trail pages" |
+| "Build an app/site/system" language | "create an Astro micro site for product listings" |
 | Multiple distinct data domains | "users, products, and orders" |
 | >5 unrelated acceptance criteria | Criteria spanning auth, UI, API, SEO, etc. |
 | Reference architecture with >3 layers | "auth + GraphQL + components + pages + middleware" |

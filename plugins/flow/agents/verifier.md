@@ -86,10 +86,10 @@ If no must_haves in PLAN.md, derive from spec goal:
 4. Identify key links (integrations required)
 
 Example:
-- Goal: "User can export trail data to CSV"
-- Truths: ["Export button visible", "Click generates CSV", "CSV contains trail data", "Download triggers automatically"]
+- Goal: "User can export report data to CSV"
+- Truths: ["Export button visible", "Click generates CSV", "CSV contains report data", "Download triggers automatically"]
 - Artifacts: ["ExportButton.tsx", "csvExport.ts", "downloadFile.ts"]
-- Key_links: ["ExportButton → csvExport", "csvExport → trailData store", "csvExport → downloadFile"]
+- Key_links: ["ExportButton → csvExport", "csvExport → reportData store", "csvExport → downloadFile"]
 
 ## Step 3: Verify Truths
 
