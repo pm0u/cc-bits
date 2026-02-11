@@ -136,11 +136,11 @@ Analyze the input content to understand:
 - Something users READ (docs/content): Structure, tone, depth, examples
 - Something being ORGANIZED (data/workflow): Criteria, grouping, naming, exceptions
 
-**Example (for "trail pages migration"):**
-- URL structure and routing approach
-- Data fetching and caching strategy
-- Page template structure and components
-- Authentication and premium content handling
+**Example (for "user dashboard with analytics"):**
+- Dashboard layout and widget arrangement
+- Data aggregation and refresh strategy
+- Chart/visualization component selection
+- Authentication and role-based access
 
 **NOT generic like:**
 - ❌ "Technical implementation"

@@ -45,7 +45,7 @@ Spek ensures your implementation matches your specification through **active enf
 ### 1. Define Your Spec
 
 ```bash
-/spek:define "migrate trail pages to Astro"
+/spek:define "add user dashboard with analytics"
 ```
 
 Interactive discussion to create comprehensive SPEC.md:
@@ -109,12 +109,12 @@ Smart router that reads state and does the right thing:
 Complex features split into parent + children:
 
 ```
-specs/offroad-trail-pages/
+specs/user-dashboard/
 +-- SPEC.md (parent)
 +-- architecture/SPEC.md
-+-- landing-page/SPEC.md
-+-- region-state-pages/SPEC.md
-+-- trail-detail-pages/SPEC.md
++-- analytics-widgets/SPEC.md
++-- data-pipeline/SPEC.md
++-- settings-page/SPEC.md
 ```
 
 Each child becomes a phase in the roadmap.
