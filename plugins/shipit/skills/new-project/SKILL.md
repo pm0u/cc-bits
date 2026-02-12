@@ -29,10 +29,10 @@ This is the most leveraged moment in any project. Deep questioning here means be
 
 <execution_context>
 
-@~/.claude/plugins/marketplaces/shipit/shipit/references/questioning.md
-@~/.claude/plugins/marketplaces/shipit/shipit/references/ui-brand.md
-@~/.claude/plugins/marketplaces/shipit/shipit/templates/project.md
-@~/.claude/plugins/marketplaces/shipit/shipit/templates/requirements.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/references/questioning.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/references/ui-brand.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/templates/project.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/templates/requirements.md
 
 </execution_context>
 
@@ -475,7 +475,7 @@ Your STACK.md feeds into roadmap creation. Be prescriptive:
 
 <output>
 Write to: .planning/research/STACK.md
-Use template: ~/.claude/plugins/marketplaces/shipit/shipit/templates/research-project/STACK.md
+Use template: ${CLAUDE_PLUGIN_ROOT}/shipit/templates/research-project/STACK.md
 </output>
 ", subagent_type="general-purpose", model="{researcher_model}", description="Stack research")
 
@@ -515,7 +515,7 @@ Your FEATURES.md feeds into requirements definition. Categorize clearly:
 
 <output>
 Write to: .planning/research/FEATURES.md
-Use template: ~/.claude/plugins/marketplaces/shipit/shipit/templates/research-project/FEATURES.md
+Use template: ${CLAUDE_PLUGIN_ROOT}/shipit/templates/research-project/FEATURES.md
 </output>
 ", subagent_type="general-purpose", model="{researcher_model}", description="Features research")
 
@@ -555,7 +555,7 @@ Your ARCHITECTURE.md informs phase structure in roadmap. Include:
 
 <output>
 Write to: .planning/research/ARCHITECTURE.md
-Use template: ~/.claude/plugins/marketplaces/shipit/shipit/templates/research-project/ARCHITECTURE.md
+Use template: ${CLAUDE_PLUGIN_ROOT}/shipit/templates/research-project/ARCHITECTURE.md
 </output>
 ", subagent_type="general-purpose", model="{researcher_model}", description="Architecture research")
 
@@ -595,7 +595,7 @@ Your PITFALLS.md prevents mistakes in roadmap/planning. For each pitfall:
 
 <output>
 Write to: .planning/research/PITFALLS.md
-Use template: ~/.claude/plugins/marketplaces/shipit/shipit/templates/research-project/PITFALLS.md
+Use template: ${CLAUDE_PLUGIN_ROOT}/shipit/templates/research-project/PITFALLS.md
 </output>
 ", subagent_type="general-purpose", model="{researcher_model}", description="Pitfalls research")
 ```
@@ -618,7 +618,7 @@ Read these files:
 
 <output>
 Write to: .planning/research/SUMMARY.md
-Use template: ~/.claude/plugins/marketplaces/shipit/shipit/templates/research-project/SUMMARY.md
+Use template: ${CLAUDE_PLUGIN_ROOT}/shipit/templates/research-project/SUMMARY.md
 Commit after writing.
 </output>
 ", subagent_type="shipit:research-synthesizer", model="{synthesizer_model}", description="Synthesize research")

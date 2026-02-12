@@ -39,15 +39,15 @@ Exit.
 
 ```bash
 # Parse state and roadmap via CLI
-STATE=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state get 2>&1)
-ROADMAP=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js roadmap parse 2>&1)
+STATE=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state get 2>&1)
+ROADMAP=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js roadmap parse 2>&1)
 
 # Extract values
 CURRENT_PHASE=$(echo "$STATE" | jq -r '.phase')
 TOTAL_PHASES=$(echo "$ROADMAP" | jq -r '.totalPhases')
 
 # Get current phase details
-PHASE_INFO=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js roadmap get-phase "$CURRENT_PHASE" 2>&1)
+PHASE_INFO=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js roadmap get-phase "$CURRENT_PHASE" 2>&1)
 PHASE_NAME=$(echo "$PHASE_INFO" | jq -r '.name')
 
 # Project and milestone info

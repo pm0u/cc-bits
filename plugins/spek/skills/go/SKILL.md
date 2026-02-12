@@ -18,9 +18,9 @@ Unlike `/spek:progress` which shows status and suggests commands, `/spek:go` det
 Uses CLI delegation (GSD v1.16.0 pattern) for state/roadmap parsing.
 The spek-tools CLI handles all file parsing operations.
 
-@~/.claude/plugins/marketplaces/spek/spek/references/spec-format.md
-@~/.claude/plugins/marketplaces/spek/spek/references/triangle-validation.md
-@~/.claude/plugins/marketplaces/spek/spek/references/ui-brand.md
+@${CLAUDE_PLUGIN_ROOT}/spek/references/spec-format.md
+@${CLAUDE_PLUGIN_ROOT}/spek/references/triangle-validation.md
+@${CLAUDE_PLUGIN_ROOT}/spek/references/ui-brand.md
 </execution_context>
 
 <process>
@@ -54,8 +54,8 @@ Exit.
 
 ```bash
 # Parse state and roadmap via CLI
-STATE=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state get 2>&1)
-ROADMAP=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js roadmap parse 2>&1)
+STATE=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state get 2>&1)
+ROADMAP=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js roadmap parse 2>&1)
 
 # Check for errors
 if echo "$STATE" | jq -e '.error' >/dev/null 2>&1; then
@@ -137,9 +137,9 @@ elif [[ "$STATUS" == *"verified"* ]] || [[ "$STATUS" == *"Phase verified"* ]]; t
     echo "Phase $CURRENT_PHASE complete. Moving to Phase $NEXT_PHASE..."
 
     # Update STATE.md to next phase via CLI
-    node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state update phase "$NEXT_PHASE" >/dev/null
-    node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state update plan "Not started" >/dev/null
-    node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state update status "Ready to plan" >/dev/null
+    node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state update phase "$NEXT_PHASE" >/dev/null
+    node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state update plan "Not started" >/dev/null
+    node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state update status "Ready to plan" >/dev/null
 
     ACTION="plan"
     CURRENT_PHASE=$NEXT_PHASE

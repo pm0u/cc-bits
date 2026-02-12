@@ -22,11 +22,11 @@ Routes to the resume-project workflow which handles:
   </objective>
 
 <execution_context>
-@~/.claude/plugins/marketplaces/spek/spek/workflows/resume-project.md
+@${CLAUDE_PLUGIN_ROOT}/spek/workflows/resume-project.md
 </execution_context>
 
 <process>
-**Follow the resume-project workflow** from `@~/.claude/plugins/marketplaces/spek/spek/workflows/resume-project.md`.
+**Follow the resume-project workflow** from `@${CLAUDE_PLUGIN_ROOT}/spek/workflows/resume-project.md`.
 
 The workflow handles all resumption logic including:
 

@@ -42,7 +42,7 @@ Exit.
 Call the spek-tools CLI to perform the operation:
 
 ```bash
-RESULT=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js phase remove "$PHASE_NUM" 2>&1)
+RESULT=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js phase remove "$PHASE_NUM" 2>&1)
 
 # Check for errors
 if ! echo "$RESULT" | jq -e '.success' >/dev/null 2>&1; then
@@ -97,7 +97,7 @@ If user approves, commit the changes:
 
 ```bash
 # Check planning config
-INIT=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js config validate)
+INIT=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js config validate)
 COMMIT_PLANNING_DOCS=$(echo "$INIT" | jq -r '.config.commit_docs')
 
 if [ "$COMMIT_PLANNING_DOCS" = "true" ] && ! git check-ignore -q .planning 2>/dev/null; then

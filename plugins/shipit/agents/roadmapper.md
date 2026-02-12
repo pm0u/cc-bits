@@ -286,7 +286,7 @@ After roadmap creation, REQUIREMENTS.md gets updated with phase mappings:
 
 ## ROADMAP.md Structure
 
-Use template from `~/.claude/plugins/marketplaces/shipit/shipit/templates/roadmap.md`.
+Use template from `${CLAUDE_PLUGIN_ROOT}/shipit/templates/roadmap.md`.
 
 Key sections:
 - Overview (2-3 sentences)
@@ -295,7 +295,7 @@ Key sections:
 
 ## STATE.md Structure
 
-Use template from `~/.claude/plugins/marketplaces/shipit/shipit/templates/state.md`.
+Use template from `${CLAUDE_PLUGIN_ROOT}/shipit/templates/state.md`.
 
 Key sections:
 - Project Reference (core value, current focus)

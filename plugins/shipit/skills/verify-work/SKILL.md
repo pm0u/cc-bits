@@ -21,8 +21,8 @@ Output: {phase}-UAT.md tracking all test results. If issues found: diagnosed gap
 </objective>
 
 <execution_context>
-@~/.claude/plugins/marketplaces/shipit/shipit/workflows/verify-work.md
-@~/.claude/plugins/marketplaces/shipit/shipit/templates/UAT.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/workflows/verify-work.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/templates/UAT.md
 </execution_context>
 
 <context>

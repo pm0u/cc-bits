@@ -21,8 +21,8 @@ Output: {phase}-UAT.md tracking all test results. If issues found: diagnosed gap
 </objective>
 
 <execution_context>
-@~/.claude/plugins/marketplaces/spek/spek/workflows/verify-work.md
-@~/.claude/plugins/marketplaces/spek/spek/templates/UAT.md
+@${CLAUDE_PLUGIN_ROOT}/spek/workflows/verify-work.md
+@${CLAUDE_PLUGIN_ROOT}/spek/templates/UAT.md
 </execution_context>
 
 <context>

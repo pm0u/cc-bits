@@ -19,8 +19,8 @@ Detect whether SHIPIT is installed locally or globally by checking both location
 if [ -f "./.claude/shipit/VERSION" ]; then
   cat "./.claude/shipit/VERSION"
   echo "LOCAL"
-elif [ -f ~/.claude/plugins/marketplaces/shipit/shipit/VERSION ]; then
-  cat ~/.claude/plugins/marketplaces/shipit/shipit/VERSION
+elif [ -f ${CLAUDE_PLUGIN_ROOT}/shipit/VERSION ]; then
+  cat ${CLAUDE_PLUGIN_ROOT}/shipit/VERSION
   echo "GLOBAL"
 else
   echo "UNKNOWN"

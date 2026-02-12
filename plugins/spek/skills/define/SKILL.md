@@ -27,8 +27,8 @@ Transform a feature idea or PROJECT.md into a comprehensive SPEC.md ("base spek 
 </objective>
 
 <execution_context>
-@~/.claude/plugins/marketplaces/spek/spek/references/spec-format.md
-@~/.claude/plugins/marketplaces/spek/spek/templates/spec.md
+@${CLAUDE_PLUGIN_ROOT}/spek/references/spec-format.md
+@${CLAUDE_PLUGIN_ROOT}/spek/templates/spec.md
 </execution_context>
 
 <context>

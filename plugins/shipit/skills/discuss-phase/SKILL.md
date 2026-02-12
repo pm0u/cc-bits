@@ -24,8 +24,8 @@ Extract implementation decisions that downstream agents need — researcher and 
 </objective>
 
 <execution_context>
-@~/.claude/plugins/marketplaces/shipit/shipit/workflows/discuss-phase.md
-@~/.claude/plugins/marketplaces/shipit/shipit/templates/context.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/workflows/discuss-phase.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/templates/context.md
 </execution_context>
 
 <context>

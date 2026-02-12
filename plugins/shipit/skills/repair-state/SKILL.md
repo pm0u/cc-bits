@@ -23,7 +23,7 @@ This is the "fix my project state" command.
 </objective>
 
 <execution_context>
-@~/.claude/plugins/marketplaces/shipit/shipit/references/state-validation.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/references/state-validation.md
 </execution_context>
 
 <process>

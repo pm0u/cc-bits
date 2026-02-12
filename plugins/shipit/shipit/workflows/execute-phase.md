@@ -13,8 +13,8 @@ Validate state consistency before proceeding.
 </required_reading>
 
 <references>
-@~/.claude/plugins/marketplaces/shipit/shipit/references/state-validation.md
-@~/.claude/plugins/marketplaces/shipit/shipit/references/config-parsing.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/references/state-validation.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/references/config-parsing.md
 </references>
 
 <process>
@@ -23,7 +23,7 @@ Validate state consistency before proceeding.
 Load all context in one call (v1.15.0 optimization - read files once, not twice):
 
 ```bash
-INIT=$(node ~/.claude/plugins/marketplaces/shipit/bin/shipit-tools.js init execute-phase "${PHASE_ARG}" --include=state,config,roadmap)
+INIT=$(node ${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js init execute-phase "${PHASE_ARG}" --include=state,config,roadmap)
 ```
 
 Parse JSON for context values:

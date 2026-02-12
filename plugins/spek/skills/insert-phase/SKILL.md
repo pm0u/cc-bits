@@ -56,7 +56,7 @@ fi
 Call the spek-tools CLI to perform the operation:
 
 ```bash
-RESULT=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js phase insert "$AFTER_PHASE" "$DESCRIPTION" 2>&1)
+RESULT=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js phase insert "$AFTER_PHASE" "$DESCRIPTION" 2>&1)
 
 # Check for errors
 if ! echo "$RESULT" | jq -e '.success' >/dev/null 2>&1; then

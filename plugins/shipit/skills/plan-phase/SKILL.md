@@ -15,7 +15,7 @@ allowed-tools:
 ---
 
 <execution_context>
-@~/.claude/plugins/marketplaces/shipit/shipit/references/ui-brand.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/references/ui-brand.md
 </execution_context>
 
 <objective>
@@ -47,7 +47,7 @@ Normalize phase input in step 2 before any directory lookups.
 Load all context in one call (v1.15.0 optimization):
 
 ```bash
-INIT=$(node ~/.claude/plugins/marketplaces/shipit/bin/shipit-tools.js init plan-phase "${PHASE:-1}" --include=state,config,roadmap,requirements)
+INIT=$(node ${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js init plan-phase "${PHASE:-1}" --include=state,config,roadmap,requirements)
 ```
 
 **If .planning/ doesn't exist:** Error - user should run `/shipit:new-project` first.

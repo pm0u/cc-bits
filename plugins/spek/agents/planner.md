@@ -439,8 +439,8 @@ Output: [What artifacts will be created]
 </objective>
 
 <execution_context>
-@~/.claude/plugins/marketplaces/spek/spek/workflows/execute-plan.md
-@~/.claude/plugins/marketplaces/spek/spek/templates/summary.md
+@${CLAUDE_PLUGIN_ROOT}/spek/workflows/execute-plan.md
+@${CLAUDE_PLUGIN_ROOT}/spek/templates/summary.md
 </execution_context>
 
 <context>

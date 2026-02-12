@@ -24,8 +24,8 @@ Extract implementation decisions that downstream agents need — researcher and 
 </objective>
 
 <execution_context>
-@~/.claude/plugins/marketplaces/spek/spek/workflows/discuss-phase.md
-@~/.claude/plugins/marketplaces/spek/spek/templates/context.md
+@${CLAUDE_PLUGIN_ROOT}/spek/workflows/discuss-phase.md
+@${CLAUDE_PLUGIN_ROOT}/spek/templates/context.md
 </execution_context>
 
 <context>

@@ -13,8 +13,8 @@ Validate state consistency before proceeding.
 </required_reading>
 
 <references>
-@~/.claude/plugins/marketplaces/spek/spek/references/state-validation.md
-@~/.claude/plugins/marketplaces/spek/spek/references/config-parsing.md
+@${CLAUDE_PLUGIN_ROOT}/spek/references/state-validation.md
+@${CLAUDE_PLUGIN_ROOT}/spek/references/config-parsing.md
 </references>
 
 <process>

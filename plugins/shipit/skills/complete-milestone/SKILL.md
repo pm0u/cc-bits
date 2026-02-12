@@ -19,8 +19,8 @@ Output: Milestone archived (roadmap + requirements), PROJECT.md evolved, git tag
 <execution_context>
 **Load these files NOW (before proceeding):**
 
-- @~/.claude/plugins/marketplaces/shipit/shipit/workflows/complete-milestone.md (main workflow)
-- @~/.claude/plugins/marketplaces/shipit/shipit/templates/milestone-archive.md (archive template)
+- @${CLAUDE_PLUGIN_ROOT}/shipit/workflows/complete-milestone.md (main workflow)
+- @${CLAUDE_PLUGIN_ROOT}/shipit/templates/milestone-archive.md (archive template)
   </execution_context>
 
 <context>

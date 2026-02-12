@@ -42,7 +42,7 @@ Exit.
 Call the shipit-tools CLI to perform the operation:
 
 ```bash
-RESULT=$(node ~/.claude/plugins/marketplaces/shipit/bin/shipit-tools.js phase add "$DESCRIPTION" 2>&1)
+RESULT=$(node ${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js phase add "$DESCRIPTION" 2>&1)
 
 # Check for errors
 if ! echo "$RESULT" | jq -e '.success' >/dev/null 2>&1; then

@@ -19,8 +19,8 @@ Detect whether SPEK is installed locally or globally by checking both locations:
 if [ -f "./.claude/spek/VERSION" ]; then
   cat "./.claude/spek/VERSION"
   echo "LOCAL"
-elif [ -f ~/.claude/plugins/marketplaces/spek/spek/VERSION ]; then
-  cat ~/.claude/plugins/marketplaces/spek/spek/VERSION
+elif [ -f ${CLAUDE_PLUGIN_ROOT}/spek/VERSION ]; then
+  cat ${CLAUDE_PLUGIN_ROOT}/spek/VERSION
   echo "GLOBAL"
 else
   echo "UNKNOWN"

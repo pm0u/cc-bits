@@ -19,8 +19,8 @@ Output: Milestone archived (roadmap + requirements), PROJECT.md evolved, git tag
 <execution_context>
 **Load these files NOW (before proceeding):**
 
-- @~/.claude/plugins/marketplaces/spek/spek/workflows/complete-milestone.md (main workflow)
-- @~/.claude/plugins/marketplaces/spek/spek/templates/milestone-archive.md (archive template)
+- @${CLAUDE_PLUGIN_ROOT}/spek/workflows/complete-milestone.md (main workflow)
+- @${CLAUDE_PLUGIN_ROOT}/spek/templates/milestone-archive.md (archive template)
   </execution_context>
 
 <context>

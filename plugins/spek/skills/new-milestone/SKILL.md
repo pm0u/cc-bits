@@ -26,8 +26,8 @@ Bridge from spec-driven requirements (SPEC.md) to shipit development workflow.
 </objective>
 
 <execution_context>
-@~/.claude/plugins/marketplaces/spek/spek/references/spec-format.md
-@~/.claude/plugins/marketplaces/spek/spek/templates/roadmap.md
+@${CLAUDE_PLUGIN_ROOT}/spek/references/spec-format.md
+@${CLAUDE_PLUGIN_ROOT}/spek/templates/roadmap.md
 </execution_context>
 
 <context>

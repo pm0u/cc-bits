@@ -439,8 +439,8 @@ Output: [What artifacts will be created]
 </objective>
 
 <execution_context>
-@~/.claude/plugins/marketplaces/shipit/shipit/workflows/execute-plan.md
-@~/.claude/plugins/marketplaces/shipit/shipit/templates/summary.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/workflows/execute-plan.md
+@${CLAUDE_PLUGIN_ROOT}/shipit/templates/summary.md
 </execution_context>
 
 <context>

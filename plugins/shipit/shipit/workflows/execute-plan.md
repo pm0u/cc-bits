@@ -15,7 +15,7 @@ Read config.json for planning behavior settings.
 Load all context in one call (v1.15.0 optimization):
 
 ```bash
-INIT=$(node ~/.claude/plugins/marketplaces/shipit/bin/shipit-tools.js init execute-phase "${PHASE}" --include=state,config)
+INIT=$(node ${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js init execute-phase "${PHASE}" --include=state,config)
 ```
 
 Parse JSON for context:

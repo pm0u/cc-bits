@@ -286,7 +286,7 @@ After roadmap creation, REQUIREMENTS.md gets updated with phase mappings:
 
 ## ROADMAP.md Structure
 
-Use template from `~/.claude/plugins/marketplaces/spek/spek/templates/roadmap.md`.
+Use template from `${CLAUDE_PLUGIN_ROOT}/spek/templates/roadmap.md`.
 
 Key sections:
 - Overview (2-3 sentences)
@@ -295,7 +295,7 @@ Key sections:
 
 ## STATE.md Structure
 
-Use template from `~/.claude/plugins/marketplaces/spek/spek/templates/state.md`.
+Use template from `${CLAUDE_PLUGIN_ROOT}/spek/templates/state.md`.
 
 Key sections:
 - Project Reference (core value, current focus)

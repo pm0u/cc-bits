@@ -15,7 +15,7 @@ allowed-tools:
 ---
 
 <execution_context>
-@~/.claude/plugins/marketplaces/spek/spek/references/ui-brand.md
+@${CLAUDE_PLUGIN_ROOT}/spek/references/ui-brand.md
 </execution_context>
 
 <objective>

@@ -14,7 +14,7 @@ You operate in two modes: **preflight** and **postflight**.
 ## Reference
 
 Read the triangle validation reference before doing any work:
-@~/.claude/plugins/marketplaces/spek/spek/references/triangle-validation.md
+@${CLAUDE_PLUGIN_ROOT}/spek/references/triangle-validation.md
 
 ## Preflight Mode
 
@@ -110,7 +110,7 @@ Your job: Validate that the triangle is consistent after implementation.
    Only record if the drift reveals a **pattern** — skip one-off typos or trivial mismatches.
 
 7. Generate drift report using template:
-   @~/.claude/plugins/marketplaces/spek/spek/templates/drift-report.md
+   @${CLAUDE_PLUGIN_ROOT}/spek/templates/drift-report.md
 
 8. Update SPEC.md:
    - Populate/update Files section with changed implementation files

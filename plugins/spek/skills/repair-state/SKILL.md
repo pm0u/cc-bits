@@ -22,7 +22,7 @@ This is the "fix my project state" command.
 Uses CLI delegation (GSD v1.16.0 pattern) for state validation.
 The spek-tools CLI handles all validation logic.
 
-@~/.claude/plugins/marketplaces/spek/spek/references/state-validation.md
+@${CLAUDE_PLUGIN_ROOT}/spek/references/state-validation.md
 </execution_context>
 
 <process>
@@ -52,7 +52,7 @@ echo ""
 echo "Running full validation..."
 echo ""
 
-VALIDATION=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state validate 2>&1)
+VALIDATION=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state validate 2>&1)
 ```
 
 The CLI performs all checks:
@@ -137,14 +137,14 @@ Options:
 For position drift:
 ```bash
 # CLI provides correct values
-node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state update plan "$CORRECT_PLAN"
+node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state update plan "$CORRECT_PLAN"
 echo "✓ Fixed: Position updated"
 ```
 
 For missing config fields:
 ```bash
 # CLI validates and returns full config with defaults
-CONFIG=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js config validate)
+CONFIG=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js config validate)
 echo "$CONFIG" | jq -r '.config' > .planning/config.json
 echo "✓ Fixed: Added missing config fields"
 ```
@@ -152,7 +152,7 @@ echo "✓ Fixed: Added missing config fields"
 For stale timestamp:
 ```bash
 TODAY=$(date +%Y-%m-%d)
-node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state update status "Repaired on $TODAY"
+node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state update status "Repaired on $TODAY"
 echo "✓ Fixed: Updated timestamp"
 ```
 </step>
@@ -162,14 +162,14 @@ echo "✓ Fixed: Updated timestamp"
 
 ```bash
 # Parse current project state
-ROADMAP=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js roadmap parse)
+ROADMAP=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js roadmap parse)
 TOTAL_PHASES=$(echo "$ROADMAP" | jq -r '.totalPhases')
 
 # Find highest phase with work
 LATEST_PHASE=$(ls -d .planning/phases/*/ 2>/dev/null | tail -1 | xargs basename | grep -oE "^[0-9]+")
 
 # Get phase details
-PHASE_INFO=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js roadmap get-phase "$LATEST_PHASE")
+PHASE_INFO=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js roadmap get-phase "$LATEST_PHASE")
 PHASE_NAME=$(echo "$PHASE_INFO" | jq -r '.name')
 
 # Count completed in that phase
@@ -209,7 +209,7 @@ Resume file: None
 **Re-run validation after repairs:**
 
 ```bash
-FINAL_CHECK=$(node ~/.claude/plugins/marketplaces/spek/bin/spek-tools.js state validate)
+FINAL_CHECK=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state validate)
 VALID=$(echo "$FINAL_CHECK" | jq -r '.valid')
 
 if [ "$VALID" = "true" ]; then
