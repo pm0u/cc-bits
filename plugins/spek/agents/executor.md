@@ -619,7 +619,7 @@ If tests fail:
 
 **Exception:** If this is the very first task of a phase and no test command is detected (no package.json, pytest.ini, go.mod, etc.):
 - Check if the phase spec has acceptance criteria
-- **If acceptance criteria exist:** This is NOT acceptable — tests should have been derived during plan-phase. Document this as "MISSING TESTS — acceptance criteria exist but no test infrastructure found" in SUMMARY.md. Flag prominently so postflight catches it.
+- **If acceptance criteria exist:** This is a **hard block**. See `<pre_execution_test_gate>` below. Do NOT proceed — return a checkpoint immediately.
 - **If NO acceptance criteria exist:** Document as "No tests configured — no acceptance criteria for this phase" in SUMMARY.md. Postflight validation will flag this as triangle drift.
 
 **Why this matters:**
@@ -633,6 +633,82 @@ Breaking this chain breaks the triangle.
 
 **CRITICAL:** The bash code above with exit code check is MANDATORY. No commits with failing tests. Period.
 </test_enforcement>
+
+<pre_execution_test_gate>
+**CRITICAL: Run this check before executing the first task.**
+
+Before beginning any task execution, verify that tests exist when acceptance criteria exist. This is the tertiary enforcement point (after `/spek:go` and `/spek:execute-phase`).
+
+```bash
+# 1. Check for acceptance criteria in SPEC.md
+SPEC_FILE=$(find specs -name "SPEC.md" -type f 2>/dev/null | head -1)
+AC_COUNT=0
+if [ -n "$SPEC_FILE" ]; then
+  AC_COUNT=$(grep -cE "^- \[" "$SPEC_FILE" 2>/dev/null || echo "0")
+fi
+
+# 2. Check for test files
+TEST_FILES=$(find . -name "*.test.*" -o -name "*.spec.*" -o -name "*_test.*" 2>/dev/null | grep -v node_modules | head -5)
+TEST_COUNT=$(echo "$TEST_FILES" | grep -c "." 2>/dev/null || echo "0")
+[ -z "$TEST_FILES" ] && TEST_COUNT=0
+
+# 3. Check for test command
+HAS_TEST_CMD=false
+if [ -f "package.json" ] && grep -q '"test"' package.json; then
+  HAS_TEST_CMD=true
+elif [ -f "pytest.ini" ] || [ -f "go.mod" ] || [ -f "Cargo.toml" ]; then
+  HAS_TEST_CMD=true
+fi
+
+# 4. Gate check
+if [ "$AC_COUNT" -gt 0 ] && [ "$TEST_COUNT" -eq 0 ] && [ "$HAS_TEST_CMD" = "false" ]; then
+  echo "HARD BLOCK: $AC_COUNT acceptance criteria exist but no tests found"
+  # Return checkpoint:human-action immediately
+fi
+```
+
+**If acceptance criteria > 0 and no tests exist → STOP. Return checkpoint immediately:**
+
+```markdown
+## CHECKPOINT REACHED
+
+**Type:** human-action
+**Plan:** {phase}-{plan}
+**Progress:** 0/{total} tasks complete
+
+### Completed Tasks
+
+(none — blocked before execution)
+
+### Current Task
+
+**Task 1:** {first task name}
+**Status:** blocked
+**Blocked by:** Missing tests for {AC_COUNT} acceptance criteria
+
+### Checkpoint Details
+
+**Automation attempted:**
+Pre-execution test gate check
+
+**Issue:**
+The spec has {AC_COUNT} acceptance criteria but no test files or test command were found. The spec triangle requires tests to be derived from acceptance criteria before implementation begins.
+
+**What you need to do:**
+
+1. Run `/spek:plan-phase {phase}` — this will invoke the test-writer agent to derive tests from your acceptance criteria
+2. Or create tests manually that cover the acceptance criteria in SPEC.md
+
+**After tests exist, re-run:**
+`/spek:execute-phase {phase}`
+
+### Awaiting
+
+Tests must exist before execution can proceed. Run `/spek:plan-phase` to generate them or create them manually, then type "done".
+```
+
+**Do NOT proceed with execution.** Do NOT document as a note in SUMMARY.md. This is a hard failure.
+</pre_execution_test_gate>
 
 <task_commit_protocol>
 After each task completes (verification passed, done criteria met), commit immediately.

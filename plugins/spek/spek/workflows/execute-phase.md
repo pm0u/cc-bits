@@ -345,6 +345,59 @@ Report wave structure with context:
 The "What it builds" column comes from skimming plan names/objectives. Keep it brief (3-8 words).
 </step>
 
+<step name="verify_test_readiness">
+**Pre-execution test gate (fallback for direct `/spek:execute-phase` invocation).**
+
+This catches missing tests for users who run `/spek:execute-phase` directly without going through `/spek:go`.
+
+```bash
+# Check for acceptance criteria in SPEC.md
+SPEC_FILE=$(find specs -name "SPEC.md" -type f 2>/dev/null | head -1)
+AC_COUNT=0
+if [ -n "$SPEC_FILE" ]; then
+  AC_COUNT=$(grep -cE "^- \[" "$SPEC_FILE" 2>/dev/null || echo "0")
+fi
+
+# Check for test files
+TEST_FILES=$(find . -name "*.test.*" -o -name "*.spec.*" -o -name "*_test.*" 2>/dev/null | grep -v node_modules | head -5)
+TEST_COUNT=0
+[ -n "$TEST_FILES" ] && TEST_COUNT=$(echo "$TEST_FILES" | wc -l | tr -d ' ')
+
+# Check for test command
+HAS_TEST_CMD=false
+if [ -f "package.json" ] && grep -q '"test"' package.json; then
+  HAS_TEST_CMD=true
+elif [ -f "pytest.ini" ] || [ -f "go.mod" ] || [ -f "Cargo.toml" ]; then
+  HAS_TEST_CMD=true
+fi
+```
+
+**If acceptance criteria exist but no tests → auto-spawn test-writer before proceeding:**
+
+```bash
+if [ "$AC_COUNT" -gt 0 ] && [ "$TEST_COUNT" -eq 0 ] && [ "$HAS_TEST_CMD" = "false" ]; then
+  echo "⚠ $AC_COUNT acceptance criteria found but no tests exist"
+  echo "Spawning test-writer to derive tests before execution..."
+fi
+```
+
+Spawn test-writer agent:
+```
+Task(
+  prompt="Write tests from spec acceptance criteria.\n\nSpec file: ${SPEC_FILE}\n\nDerive failing tests from the acceptance criteria. Follow your full process: understand spec, discover conventions, detect project type, write unit tests (and browser tests for web apps), verify they fail.",
+  subagent_type="spek:test-writer",
+  description="Write tests from spec"
+)
+```
+
+After test-writer completes:
+- Verify test files were created
+- Report what was generated
+- Continue to execute_waves
+
+**If tests already exist or no acceptance criteria:** Continue silently to execute_waves.
+</step>
+
 <step name="execute_waves">
 Execute each wave in sequence. Autonomous plans within a wave run in parallel **only if `PARALLELIZATION=true`**.
 

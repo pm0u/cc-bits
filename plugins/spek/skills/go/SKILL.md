@@ -104,9 +104,23 @@ elif [[ "$PLAN" == *"Not started"* ]]; then
   echo "Action: Plan phase $CURRENT_PHASE (not started)"
 
 elif [[ "$STATUS" == *"Ready to execute"* ]] || [[ "$PLAN" == *"Ready to execute"* ]]; then
-  # Plans exist, ready to execute
-  ACTION="execute"
-  echo "Action: Execute phase $CURRENT_PHASE"
+  # Plans exist, ready to execute — but first check test readiness
+  # Check if SPEC has acceptance criteria but no tests exist
+  SPEC_FILE=$(find specs -name "SPEC.md" -type f 2>/dev/null | head -1)
+  AC_COUNT=0
+  if [ -n "$SPEC_FILE" ]; then
+    AC_COUNT=$(grep -cE "^- \[" "$SPEC_FILE" 2>/dev/null || echo "0")
+  fi
+
+  TEST_FILES=$(find . -name "*.test.*" -o -name "*.spec.*" -o -name "*_test.*" 2>/dev/null | grep -v node_modules | head -1)
+
+  if [ "$AC_COUNT" -gt 0 ] && [ -z "$TEST_FILES" ]; then
+    ACTION="write-tests"
+    echo "Action: Write tests first — $AC_COUNT acceptance criteria exist but no test files found"
+  else
+    ACTION="execute"
+    echo "Action: Execute phase $CURRENT_PHASE"
+  fi
 
 elif [[ "$STATUS" == *"Execution complete"* ]] || [[ "$STATUS" == *"Phase complete"* ]]; then
   # Execution done, need verification
@@ -166,6 +180,31 @@ Invoke:
 Skill(skill: "spek:plan-phase", args: "${CURRENT_PHASE}")
 ```
 
+**If ACTION="write-tests":**
+
+```
+Tests needed before execution — spawning test-writer...
+```
+
+Spawn the test-writer agent with the SPEC.md path:
+```
+Task(
+  prompt="Write tests from spec acceptance criteria.\n\nSpec file: ${SPEC_FILE}\n\nDerive failing tests from the acceptance criteria. Follow your full process: understand spec, discover conventions, detect project type, write unit tests (and browser tests for web apps), verify they fail.",
+  subagent_type="spek:test-writer",
+  description="Write tests from spec"
+)
+```
+
+After test-writer completes, route to execute:
+```
+Invoking: /spek:execute-phase ${CURRENT_PHASE}
+```
+
+Invoke:
+```
+Skill(skill: "spek:execute-phase", args: "${CURRENT_PHASE}")
+```
+
 **If ACTION="execute":**
 
 ```
@@ -223,7 +262,8 @@ Exit.
 - [ ] If no .planning/ → suggests /spek:define or /spek:new-milestone
 - [ ] If corrupted state → suggests /spek:repair-state
 - [ ] If phase needs planning → invokes /spek:plan-phase
-- [ ] If phase ready to execute → invokes /spek:execute-phase
+- [ ] If phase ready to execute + missing tests → spawns test-writer then /spek:execute-phase
+- [ ] If phase ready to execute + tests present → invokes /spek:execute-phase
 - [ ] If phase needs verification → invokes /spek:verify-phase
 - [ ] If phase complete → moves to next phase automatically (via CLI state updates)
 - [ ] If all phases complete → shows milestone complete message
@@ -241,7 +281,9 @@ No .planning/ → suggest define/new-milestone
   ↓
 Phase N: Not planned → /spek:plan-phase N
   ↓
-Phase N: Ready to execute → /spek:execute-phase N
+Phase N: Ready to execute
+  ├─ acceptance criteria + no tests → spek:test-writer → /spek:execute-phase N
+  └─ tests exist (or no criteria) → /spek:execute-phase N
   ↓
 Phase N: Execution complete → /spek:verify-phase N
   ↓

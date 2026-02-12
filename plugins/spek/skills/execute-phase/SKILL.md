@@ -338,6 +338,32 @@ This helps users understand resource usage and identify heavy plans.
    - **If blocker=no:** Offer: 1) Proceed with caution, 2) Resolve first, 3) Abort
    - Wait for user response
 
+3.7. **Verify Test Readiness (Pre-execution gate)**
+
+   Fallback gate for users who run `/spek:execute-phase` directly without `/spek:go`.
+
+   ```bash
+   # Check for acceptance criteria
+   SPEC_FILE=$(find specs -name "SPEC.md" -type f 2>/dev/null | head -1)
+   AC_COUNT=0
+   if [ -n "$SPEC_FILE" ]; then
+     AC_COUNT=$(grep -cE "^- \[" "$SPEC_FILE" 2>/dev/null || echo "0")
+   fi
+
+   # Check for test files
+   TEST_FILES=$(find . -name "*.test.*" -o -name "*.spec.*" -o -name "*_test.*" 2>/dev/null | grep -v node_modules | head -5)
+   TEST_COUNT=0
+   [ -n "$TEST_FILES" ] && TEST_COUNT=$(echo "$TEST_FILES" | wc -l | tr -d ' ')
+   ```
+
+   **If acceptance criteria > 0 and no tests exist:**
+   - Spawn `spek:test-writer` agent to derive tests from SPEC.md
+   - Wait for completion
+   - Verify test files were created
+   - Then continue to execute waves
+
+   **If tests exist or no acceptance criteria:** Continue silently.
+
 4. **Execute waves**
    For each wave in order:
    - Spawn `spek:executor` for each plan in wave (parallel Task calls)
