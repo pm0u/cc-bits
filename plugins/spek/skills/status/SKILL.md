@@ -38,16 +38,18 @@ Exit.
 **Collect all status data via CLI:**
 
 ```bash
+# Resolve CLI path (handles marketplace sub-plugin installations)
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
 # Parse state and roadmap via CLI
-STATE=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state get 2>&1)
-ROADMAP=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js roadmap parse 2>&1)
+STATE=$(node "$_TOOLS" state get 2>&1)
+ROADMAP=$(node "$_TOOLS" roadmap parse 2>&1)
 
 # Extract values
 CURRENT_PHASE=$(echo "$STATE" | jq -r '.phase')
 TOTAL_PHASES=$(echo "$ROADMAP" | jq -r '.totalPhases')
 
 # Get current phase details
-PHASE_INFO=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js roadmap get-phase "$CURRENT_PHASE" 2>&1)
+PHASE_INFO=$(node "$_TOOLS" roadmap get-phase "$CURRENT_PHASE" 2>&1)
 PHASE_NAME=$(echo "$PHASE_INFO" | jq -r '.name')
 
 # Project and milestone info

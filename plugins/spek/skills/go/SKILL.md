@@ -53,9 +53,11 @@ Exit.
 **Parse project state using CLI:**
 
 ```bash
+# Resolve CLI path (handles marketplace sub-plugin installations)
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
 # Parse state and roadmap via CLI
-STATE=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state get 2>&1)
-ROADMAP=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js roadmap parse 2>&1)
+STATE=$(node "$_TOOLS" state get 2>&1)
+ROADMAP=$(node "$_TOOLS" roadmap parse 2>&1)
 
 # Check for errors
 if echo "$STATE" | jq -e '.error' >/dev/null 2>&1; then
@@ -90,6 +92,8 @@ echo ""
 **Determine next action based on state:**
 
 ```bash
+# Resolve CLI path (handles marketplace sub-plugin installations)
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
 # Check if phase directory exists
 PHASE_DIR=$(find .planning/phases -type d -name "*${CURRENT_PHASE}*" 2>/dev/null | head -1)
 
@@ -137,9 +141,9 @@ elif [[ "$STATUS" == *"verified"* ]] || [[ "$STATUS" == *"Phase verified"* ]]; t
     echo "Phase $CURRENT_PHASE complete. Moving to Phase $NEXT_PHASE..."
 
     # Update STATE.md to next phase via CLI
-    node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state update phase "$NEXT_PHASE" >/dev/null
-    node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state update plan "Not started" >/dev/null
-    node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state update status "Ready to plan" >/dev/null
+    node "$_TOOLS" state update phase "$NEXT_PHASE" >/dev/null
+    node "$_TOOLS" state update plan "Not started" >/dev/null
+    node "$_TOOLS" state update status "Ready to plan" >/dev/null
 
     ACTION="plan"
     CURRENT_PHASE=$NEXT_PHASE

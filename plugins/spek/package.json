@@ -1,6 +1,6 @@
 {
   "name": "spek",
-  "version": "3.3.1",
+  "version": "3.3.2",
   "description": "Spec-driven development with triangle validation (SPEC ↔ tests ↔ code) and proven SHIPIT orchestration.",
   "keywords": [
     "claude",

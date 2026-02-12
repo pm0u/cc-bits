@@ -23,7 +23,10 @@ Validate state consistency before proceeding.
 Load all context in one call (v1.15.0 optimization - read files once, not twice):
 
 ```bash
-INIT=$(node ${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js init execute-phase "${PHASE_ARG}" --include=state,config,roadmap)
+# Resolve CLI path (handles marketplace sub-plugin installations)
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/shipit/bin/shipit-tools.js' -print -quit 2>/dev/null)"
+
+INIT=$(node "$_TOOLS" init execute-phase "${PHASE_ARG}" --include=state,config,roadmap)
 ```
 
 Parse JSON for context values:

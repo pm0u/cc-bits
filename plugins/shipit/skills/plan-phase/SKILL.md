@@ -47,7 +47,10 @@ Normalize phase input in step 2 before any directory lookups.
 Load all context in one call (v1.15.0 optimization):
 
 ```bash
-INIT=$(node ${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js init plan-phase "${PHASE:-1}" --include=state,config,roadmap,requirements)
+# Resolve CLI path (handles marketplace sub-plugin installations)
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/shipit/bin/shipit-tools.js' -print -quit 2>/dev/null)"
+
+INIT=$(node "$_TOOLS" init plan-phase "${PHASE:-1}" --include=state,config,roadmap,requirements)
 ```
 
 **If .planning/ doesn't exist:** Error - user should run `/shipit:new-project` first.

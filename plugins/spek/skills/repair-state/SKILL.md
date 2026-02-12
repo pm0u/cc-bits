@@ -47,12 +47,14 @@ Exit.
 **Run full validation via CLI:**
 
 ```bash
+# Resolve CLI path (handles marketplace sub-plugin installations)
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
 echo "## State Repair Diagnostics"
 echo ""
 echo "Running full validation..."
 echo ""
 
-VALIDATION=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state validate 2>&1)
+VALIDATION=$(node "$_TOOLS" state validate 2>&1)
 ```
 
 The CLI performs all checks:
@@ -136,23 +138,29 @@ Options:
 
 For position drift:
 ```bash
+# Resolve CLI path (handles marketplace sub-plugin installations)
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
 # CLI provides correct values
-node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state update plan "$CORRECT_PLAN"
+node "$_TOOLS" state update plan "$CORRECT_PLAN"
 echo "✓ Fixed: Position updated"
 ```
 
 For missing config fields:
 ```bash
+# Resolve CLI path (handles marketplace sub-plugin installations)
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
 # CLI validates and returns full config with defaults
-CONFIG=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js config validate)
+CONFIG=$(node "$_TOOLS" config validate)
 echo "$CONFIG" | jq -r '.config' > .planning/config.json
 echo "✓ Fixed: Added missing config fields"
 ```
 
 For stale timestamp:
 ```bash
+# Resolve CLI path (handles marketplace sub-plugin installations)
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
 TODAY=$(date +%Y-%m-%d)
-node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state update status "Repaired on $TODAY"
+node "$_TOOLS" state update status "Repaired on $TODAY"
 echo "✓ Fixed: Updated timestamp"
 ```
 </step>
@@ -161,15 +169,17 @@ echo "✓ Fixed: Updated timestamp"
 **If reconstructing STATE.md from artifacts:**
 
 ```bash
+# Resolve CLI path (handles marketplace sub-plugin installations)
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
 # Parse current project state
-ROADMAP=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js roadmap parse)
+ROADMAP=$(node "$_TOOLS" roadmap parse)
 TOTAL_PHASES=$(echo "$ROADMAP" | jq -r '.totalPhases')
 
 # Find highest phase with work
 LATEST_PHASE=$(ls -d .planning/phases/*/ 2>/dev/null | tail -1 | xargs basename | grep -oE "^[0-9]+")
 
 # Get phase details
-PHASE_INFO=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js roadmap get-phase "$LATEST_PHASE")
+PHASE_INFO=$(node "$_TOOLS" roadmap get-phase "$LATEST_PHASE")
 PHASE_NAME=$(echo "$PHASE_INFO" | jq -r '.name')
 
 # Count completed in that phase
@@ -209,7 +219,9 @@ Resume file: None
 **Re-run validation after repairs:**
 
 ```bash
-FINAL_CHECK=$(node ${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js state validate)
+# Resolve CLI path (handles marketplace sub-plugin installations)
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
+FINAL_CHECK=$(node "$_TOOLS" state validate)
 VALID=$(echo "$FINAL_CHECK" | jq -r '.valid')
 
 if [ "$VALID" = "true" ]; then
