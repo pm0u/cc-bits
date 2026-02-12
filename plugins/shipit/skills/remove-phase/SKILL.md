@@ -42,8 +42,8 @@ Exit.
 Call the shipit-tools CLI to perform the operation:
 
 ```bash
-# Resolve CLI path (handles marketplace sub-plugin installations)
-_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/shipit/bin/shipit-tools.js' -print -quit 2>/dev/null)"
+# Resolve CLI path
+_TOOLS="$(find ~/.claude/plugins -path '*/shipit/bin/shipit-tools.js' -print -quit 2>/dev/null)"
 
 RESULT=$(node "$_TOOLS" phase remove "$PHASE_NUM" 2>&1)
 
@@ -99,8 +99,8 @@ Where RENUMBERED_DETAILS is formatted from the renumbered array.
 If user approves, commit the changes:
 
 ```bash
-# Resolve CLI path (handles marketplace sub-plugin installations)
-_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/shipit/bin/shipit-tools.js' -print -quit 2>/dev/null)"
+# Resolve CLI path
+_TOOLS="$(find ~/.claude/plugins -path '*/shipit/bin/shipit-tools.js' -print -quit 2>/dev/null)"
 
 # Check planning config
 INIT=$(node "$_TOOLS" init execute-phase 1 --include=config)

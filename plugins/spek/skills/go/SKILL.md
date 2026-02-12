@@ -53,8 +53,8 @@ Exit.
 **Parse project state using CLI:**
 
 ```bash
-# Resolve CLI path (handles marketplace sub-plugin installations)
-_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
+# Resolve CLI path
+_TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
 # Parse state and roadmap via CLI
 STATE=$(node "$_TOOLS" state get 2>&1)
 ROADMAP=$(node "$_TOOLS" roadmap parse 2>&1)
@@ -92,8 +92,8 @@ echo ""
 **Determine next action based on state:**
 
 ```bash
-# Resolve CLI path (handles marketplace sub-plugin installations)
-_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
+# Resolve CLI path
+_TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
 # Check if phase directory exists
 PHASE_DIR=$(find .planning/phases -type d -name "*${CURRENT_PHASE}*" 2>/dev/null | head -1)
 

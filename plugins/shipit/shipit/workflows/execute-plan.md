@@ -15,8 +15,8 @@ Read config.json for planning behavior settings.
 Load all context in one call (v1.15.0 optimization):
 
 ```bash
-# Resolve CLI path (handles marketplace sub-plugin installations)
-_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js"; [ ! -f "$_TOOLS" ] && _TOOLS="$(find ~/.claude/plugins -path '*/shipit/bin/shipit-tools.js' -print -quit 2>/dev/null)"
+# Resolve CLI path
+_TOOLS="$(find ~/.claude/plugins -path '*/shipit/bin/shipit-tools.js' -print -quit 2>/dev/null)"
 
 INIT=$(node "$_TOOLS" init execute-phase "${PHASE}" --include=state,config)
 ```
