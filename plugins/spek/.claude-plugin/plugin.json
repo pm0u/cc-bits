@@ -1,5 +1,5 @@
 {
   "name": "spek",
-  "version": "3.3.3",
+  "version": "3.4.0",
   "description": "Spec-driven development with enforced triangle validation (SPEC ↔ tests ↔ code) and proven SHIPIT orchestration"
 }
