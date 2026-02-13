@@ -1,7 +1,7 @@
 ---
 name: verifier
 description: Verifies phase goal achievement through goal-backward analysis. Checks codebase delivers what phase promised, not just that tasks completed. Creates VERIFICATION.md report.
-tools: Read, Bash, Grep, Glob
+tools: Read, Bash, Grep, Glob, mcp__chrome-devtools__*, mcp__claude-in-chrome__*
 color: green
 ---
 
@@ -528,6 +528,213 @@ if [ -f package.json ] && grep -q '"test"' package.json; then
 fi
 ```
 
+## Step 7.7: Runtime Verification (Level 5 — Web Projects)
+
+For web projects, verify the app actually starts and key pages load. This catches issues that structural checks miss: JS errors, hydration failures, missing assets, and rendering problems.
+
+**Detect web project:**
+
+```bash
+IS_WEB_PROJECT=false
+DEV_COMMAND=""
+DEV_PORT=""
+
+if [ -f "package.json" ]; then
+  # Check for dev script
+  DEV_COMMAND=$(node -e "
+    const pkg = JSON.parse(require('fs').readFileSync('package.json'));
+    console.log(pkg.scripts?.dev || '');
+  " 2>/dev/null)
+
+  if [ -n "$DEV_COMMAND" ]; then
+    IS_WEB_PROJECT=true
+
+    # Detect port from framework
+    DEV_PORT=$(node -e "
+      const pkg = JSON.parse(require('fs').readFileSync('package.json'));
+      const all = {...(pkg.dependencies||{}), ...(pkg.devDependencies||{})};
+      if (all['astro']) console.log('4321');
+      else if (all['next']) console.log('3000');
+      else if (all['nuxt']) console.log('3000');
+      else if (all['vite']) console.log('5173');
+      else console.log('3000');
+    " 2>/dev/null)
+  fi
+fi
+```
+
+**Skip if not a web project or if `--skip-runtime` configured.**
+
+**Start dev server and verify:**
+
+```bash
+if [ "$IS_WEB_PROJECT" = "true" ]; then
+  echo "Starting dev server: npm run dev (port $DEV_PORT)"
+
+  # Start dev server in background
+  npm run dev > /tmp/shipit-dev-server.log 2>&1 &
+  SERVER_PID=$!
+
+  # Wait for server to be ready (max 30s)
+  READY=false
+  for i in $(seq 1 30); do
+    if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${DEV_PORT}" 2>/dev/null | grep -qE "^[23]"; then
+      READY=true
+      break
+    fi
+    sleep 1
+  done
+
+  if [ "$READY" = "true" ]; then
+    echo "Dev server ready on port $DEV_PORT"
+
+    # Extract page routes from src/pages/ or equivalent
+    PAGES=$(find src/pages -name "*.astro" -o -name "*.tsx" -o -name "*.jsx" -o -name "*.vue" -o -name "*.svelte" 2>/dev/null | head -10)
+
+    RUNTIME_RESULTS=""
+    VERIFICATION_METHOD=""
+
+    # === Three-tier verification: MCP Browser → Playwright → curl ===
+
+    # --- Tier 1: Try MCP browser tools ---
+    HAS_MCP_BROWSER=false
+    MCP_PROBE=$(mcp__chrome-devtools__list_pages 2>/dev/null) && HAS_MCP_BROWSER=true
+
+    if [ "$HAS_MCP_BROWSER" = "true" ]; then
+      VERIFICATION_METHOD="MCP Browser (Chrome DevTools)"
+      echo "Using MCP browser tools for page verification"
+
+      for page_file in $PAGES; do
+        ROUTE=$(echo "$page_file" | sed 's|src/pages||' | sed 's|\.[^.]*$||' | sed 's|/index$|/|')
+        [ -z "$ROUTE" ] && ROUTE="/"
+
+        PAGE_URL="http://localhost:${DEV_PORT}${ROUTE}"
+
+        # Navigate to page
+        mcp__chrome-devtools__navigate_page --url "$PAGE_URL" 2>/dev/null
+        sleep 2
+
+        # Check for JS console errors
+        CONSOLE_MSGS=$(mcp__chrome-devtools__list_console_messages 2>/dev/null)
+        JS_ERRORS=$(echo "$CONSOLE_MSGS" | grep -ci "error" 2>/dev/null || echo "0")
+
+        # Take DOM snapshot to verify content rendered
+        SNAPSHOT=$(mcp__chrome-devtools__take_snapshot 2>/dev/null)
+        BODY_LEN=$(echo "$SNAPSHOT" | wc -c 2>/dev/null | tr -d ' ')
+
+        if [ "${BODY_LEN:-0}" -gt 100 ] && [ "${JS_ERRORS:-0}" -eq 0 ]; then
+          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | 200 | ${BODY_LEN}B | 0 errors | ✓ LOADS |"
+        elif [ "${BODY_LEN:-0}" -gt 100 ] && [ "${JS_ERRORS:-0}" -gt 0 ]; then
+          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | 200 | ${BODY_LEN}B | ${JS_ERRORS} errors | ⚠ JS ERRORS |"
+        else
+          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | err | ${BODY_LEN:-0}B | ${JS_ERRORS:-?} errors | ✗ FAIL |"
+        fi
+      done
+
+    else
+      # --- Tier 2: Try Playwright ---
+      HAS_PLAYWRIGHT=false
+      if [ -f "playwright.config.ts" ] || [ -f "playwright.config.js" ]; then
+        HAS_PLAYWRIGHT=true
+      elif npx playwright --version >/dev/null 2>&1; then
+        HAS_PLAYWRIGHT=true
+      fi
+
+      if [ "$HAS_PLAYWRIGHT" = "true" ]; then
+        VERIFICATION_METHOD="Playwright (browser)"
+        echo "MCP browser not available — using Playwright for page verification"
+
+        for page_file in $PAGES; do
+          ROUTE=$(echo "$page_file" | sed 's|src/pages||' | sed 's|\.[^.]*$||' | sed 's|/index$|/|')
+          [ -z "$ROUTE" ] && ROUTE="/"
+
+          PLAYWRIGHT_RESULT=$(node -e "
+            const { chromium } = require('playwright');
+            (async () => {
+              const browser = await chromium.launch();
+              const page = await browser.newPage();
+              const errors = [];
+              page.on('pageerror', e => errors.push(e.message));
+              page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+              try {
+                const resp = await page.goto('http://localhost:${DEV_PORT}${ROUTE}', { timeout: 15000 });
+                const status = resp?.status() || 0;
+                const body = await page.content();
+                console.log(JSON.stringify({ status, bodyLen: body.length, errors, ok: true }));
+              } catch (e) {
+                console.log(JSON.stringify({ status: 0, bodyLen: 0, errors: [e.message], ok: false }));
+              }
+              await browser.close();
+            })();
+          " 2>/dev/null)
+
+          PW_STATUS=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.status)" 2>/dev/null)
+          PW_BODY_LEN=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.bodyLen)" 2>/dev/null)
+          PW_ERRORS=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.errors.length)" 2>/dev/null)
+          PW_OK=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.ok)" 2>/dev/null)
+
+          if [ "$PW_OK" = "true" ] && [ "${PW_STATUS:-0}" = "200" ] && [ "${PW_ERRORS:-0}" = "0" ] && [ "${PW_BODY_LEN:-0}" -gt 100 ]; then
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${PW_STATUS} | ${PW_BODY_LEN}B | 0 errors | ✓ LOADS |"
+          elif [ "$PW_OK" = "true" ] && [ "${PW_STATUS:-0}" = "200" ] && [ "${PW_ERRORS:-0}" -gt 0 ]; then
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${PW_STATUS} | ${PW_BODY_LEN}B | ${PW_ERRORS} errors | ⚠ JS ERRORS |"
+          else
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${PW_STATUS:-err} | ${PW_BODY_LEN:-0}B | ${PW_ERRORS:-?} errors | ✗ FAIL |"
+          fi
+        done
+
+      else
+        # --- Tier 3: curl fallback (no browser available) ---
+        VERIFICATION_METHOD="curl (HTTP-only fallback)"
+        echo "No browser tools available — falling back to curl verification"
+
+        for page_file in $PAGES; do
+          ROUTE=$(echo "$page_file" | sed 's|src/pages||' | sed 's|\.[^.]*$||' | sed 's|/index$|/|')
+          [ -z "$ROUTE" ] && ROUTE="/"
+
+          HTTP_CODE=$(curl -s -o /tmp/shipit-page-body.txt -w "%{http_code}" "http://localhost:${DEV_PORT}${ROUTE}" 2>/dev/null)
+          BODY_SIZE=$(wc -c < /tmp/shipit-page-body.txt 2>/dev/null | tr -d ' ')
+
+          if [ "$HTTP_CODE" = "200" ] && [ "${BODY_SIZE:-0}" -gt 100 ]; then
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${HTTP_CODE} | ${BODY_SIZE}B | n/a | ✓ LOADS |"
+          elif [ "$HTTP_CODE" = "200" ]; then
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${HTTP_CODE} | ${BODY_SIZE}B | n/a | ⚠ THIN |"
+          else
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${HTTP_CODE} | ${BODY_SIZE}B | n/a | ✗ FAIL |"
+          fi
+        done
+
+        rm -f /tmp/shipit-page-body.txt
+      fi
+    fi
+  else
+    echo "FAIL: Dev server did not start within 30s"
+    RUNTIME_RESULTS="\n| (server) | TIMEOUT | - | - | ✗ FAIL |"
+  fi
+
+  # Always clean up
+  kill $SERVER_PID 2>/dev/null
+  wait $SERVER_PID 2>/dev/null
+  rm -f /tmp/shipit-dev-server.log
+fi
+```
+
+**Record runtime results in VERIFICATION.md under "Runtime Verification" section:**
+
+```markdown
+### Runtime Verification (Web Project)
+
+**Dev server:** {started | failed to start}
+**Port:** {port}
+**Method:** {MCP Browser (Chrome DevTools) | Playwright (browser) | curl (HTTP-only fallback)}
+
+| Route | HTTP Status | Body Size | JS Errors | Status |
+|-------|-------------|-----------|-----------|--------|
+| / | 200 | 4532B | 0 errors | ✓ LOADS |
+| /about | 200 | 2100B | 0 errors | ✓ LOADS |
+```
+
+**Runtime failures are noted as gaps** but do not hard-block verification (shipit is less strict than spek on runtime checks). Record them in the gaps section so the planner can address them.
+
 ## Step 8: Identify Human Verification Needs
 
 Some things can't be verified programmatically:
@@ -822,7 +1029,7 @@ Automated checks passed. Awaiting human verification.
 
 **DO flag for human verification when uncertain.** If you can't verify programmatically (visual, real-time, external service), say so explicitly.
 
-**DO keep verification fast.** Use grep/file checks, not running the app. Goal is structural verification, not functional testing.
+**DO keep structural checks fast (Levels 1-3).** Use grep/file checks for existence, substance, and wiring. **DO run tests and check runtime behavior (Levels 4-5)** after structural checks pass — these catch the gaps that grep cannot.
 
 **DO NOT commit.** Create VERIFICATION.md but leave committing to the orchestrator.
 
@@ -913,6 +1120,8 @@ return <div>No messages</div>  // Always shows "no messages"
 - [ ] All key links verified
 - [ ] Requirements coverage assessed (if applicable)
 - [ ] Anti-patterns scanned and categorized
+- [ ] Automated tests run if configured (Level 4 — Step 7.5)
+- [ ] Runtime verification performed for web projects (Level 5 — Step 7.7)
 - [ ] Human verification items identified
 - [ ] Overall status determined
 - [ ] Gaps structured in YAML frontmatter (if gaps_found)

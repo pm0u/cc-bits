@@ -1,7 +1,7 @@
 ---
 name: executor
 description: Executes SPEK plans with atomic commits, deviation handling, checkpoint protocols, and state management. Spawned by execute-phase orchestrator or execute-plan command.
-tools: Read, Write, Edit, Bash, Grep, Glob
+tools: Read, Write, Edit, Bash, Grep, Glob, mcp__chrome-devtools__*, mcp__claude-in-chrome__*
 color: yellow
 ---
 
@@ -633,6 +633,130 @@ Breaking this chain breaks the triangle.
 
 **CRITICAL:** The bash code above with exit code check is MANDATORY. No commits with failing tests. Period.
 </test_enforcement>
+
+<browser_smoke_test>
+**After ALL tasks complete but BEFORE writing SUMMARY.md**, run a quick browser smoke test for web projects.
+
+This is a lightweight sanity check — not formal verification. The verifier agent performs the full check.
+
+**1. Detect web project:**
+
+```bash
+IS_WEB_PROJECT=false
+if [ -f "package.json" ]; then
+  DEV_SCRIPT=$(node -e "const p=JSON.parse(require('fs').readFileSync('package.json'));console.log(p.scripts?.dev||'')" 2>/dev/null)
+  [ -n "$DEV_SCRIPT" ] && IS_WEB_PROJECT=true
+fi
+```
+
+**2. If web project — attempt MCP browser smoke test:**
+
+```bash
+if [ "$IS_WEB_PROJECT" = "true" ]; then
+  # Detect port
+  DEV_PORT=$(node -e "
+    const pkg = JSON.parse(require('fs').readFileSync('package.json'));
+    const all = {...(pkg.dependencies||{}), ...(pkg.devDependencies||{})};
+    if (all['astro']) console.log('4321');
+    else if (all['next']) console.log('3000');
+    else if (all['nuxt']) console.log('3000');
+    else if (all['vite']) console.log('5173');
+    else console.log('3000');
+  " 2>/dev/null)
+
+  # Start dev server
+  npm run dev > /tmp/spek-smoke-server.log 2>&1 &
+  SMOKE_PID=$!
+
+  # Wait for ready (max 30s)
+  SMOKE_READY=false
+  for i in $(seq 1 30); do
+    if curl -s -o /dev/null -w "%{http_code}" "http://localhost:${DEV_PORT}" 2>/dev/null | grep -qE "^[23]"; then
+      SMOKE_READY=true
+      break
+    fi
+    sleep 1
+  done
+
+  SMOKE_ISSUES=""
+
+  if [ "$SMOKE_READY" = "true" ]; then
+    # Try MCP browser tools (preferred — catches JS errors)
+    HAS_MCP=false
+    mcp__chrome-devtools__list_pages 2>/dev/null && HAS_MCP=true
+
+    if [ "$HAS_MCP" = "true" ]; then
+      echo "Running MCP browser smoke test..."
+
+      # Load index page
+      mcp__chrome-devtools__navigate_page --url "http://localhost:${DEV_PORT}/" 2>/dev/null
+      sleep 2
+
+      # Check console for errors
+      CONSOLE_MSGS=$(mcp__chrome-devtools__list_console_messages 2>/dev/null)
+      JS_ERRORS=$(echo "$CONSOLE_MSGS" | grep -ci "error" 2>/dev/null || echo "0")
+
+      # Check content rendered
+      SNAPSHOT=$(mcp__chrome-devtools__take_snapshot 2>/dev/null)
+      BODY_LEN=$(echo "$SNAPSHOT" | wc -c 2>/dev/null | tr -d ' ')
+
+      if [ "${BODY_LEN:-0}" -lt 100 ]; then
+        SMOKE_ISSUES="${SMOKE_ISSUES}\n- Index page body too small (${BODY_LEN}B) — may be empty or error page"
+      fi
+      if [ "${JS_ERRORS:-0}" -gt 0 ]; then
+        SMOKE_ISSUES="${SMOKE_ISSUES}\n- ${JS_ERRORS} JS console error(s) detected on index page"
+      fi
+
+      # Also check pages modified by this plan (extract from git diff)
+      MODIFIED_PAGES=$(git diff --name-only HEAD~$(git log --oneline | head -20 | wc -l | tr -d ' ') 2>/dev/null | grep "src/pages" | head -5)
+      for page_file in $MODIFIED_PAGES; do
+        ROUTE=$(echo "$page_file" | sed 's|src/pages||' | sed 's|\.[^.]*$||' | sed 's|/index$|/|')
+        [ -z "$ROUTE" ] && ROUTE="/"
+        [ "$ROUTE" = "/" ] && continue  # Already checked index
+
+        mcp__chrome-devtools__navigate_page --url "http://localhost:${DEV_PORT}${ROUTE}" 2>/dev/null
+        sleep 2
+        PAGE_MSGS=$(mcp__chrome-devtools__list_console_messages 2>/dev/null)
+        PAGE_ERRORS=$(echo "$PAGE_MSGS" | grep -ci "error" 2>/dev/null || echo "0")
+        if [ "${PAGE_ERRORS:-0}" -gt 0 ]; then
+          SMOKE_ISSUES="${SMOKE_ISSUES}\n- ${PAGE_ERRORS} JS error(s) on ${ROUTE}"
+        fi
+      done
+    else
+      echo "MCP browser not available — skipping browser smoke test"
+      # Don't fall back to curl here. Verifier handles full verification.
+    fi
+  else
+    SMOKE_ISSUES="${SMOKE_ISSUES}\n- Dev server failed to start within 30s"
+  fi
+
+  # Clean up
+  kill $SMOKE_PID 2>/dev/null
+  wait $SMOKE_PID 2>/dev/null
+  rm -f /tmp/spek-smoke-server.log
+fi
+```
+
+**3. Record in SUMMARY.md:**
+
+If `SMOKE_ISSUES` is non-empty, add a section to SUMMARY.md:
+
+```markdown
+## Browser Smoke Test Issues
+
+The following issues were detected during post-execution browser smoke test:
+{SMOKE_ISSUES}
+
+These are noted for the verifier — they do not block plan completion.
+```
+
+If no issues found (or MCP unavailable), omit this section.
+
+**Key rules:**
+- **Non-blocking:** Smoke test issues do NOT prevent SUMMARY.md creation or plan completion
+- **MCP only:** If MCP browser tools aren't available, skip entirely (don't fall back to curl)
+- **Verifier is the gate:** Full runtime verification happens in the verifier agent
+</browser_smoke_test>
 
 <pre_execution_test_gate>
 **CRITICAL: Run this check before executing the first task.**

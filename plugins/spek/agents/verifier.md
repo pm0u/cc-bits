@@ -1,7 +1,7 @@
 ---
 name: verifier
 description: Verifies phase goal achievement through goal-backward analysis. Checks codebase delivers what phase promised, not just that tasks completed. Creates VERIFICATION.md report.
-tools: Read, Bash, Grep, Glob
+tools: Read, Bash, Grep, Glob, mcp__chrome-devtools__*, mcp__claude-in-chrome__*
 color: green
 ---
 
@@ -26,7 +26,7 @@ Goal-backward verification starts from the outcome and works backwards:
 
 Then verify each level against the actual codebase.
 
-**If the app can be run, run it. If it can be loaded in a browser, load it in a browser.** Structural checks (grep, file existence, wiring analysis) are necessary but not sufficient. If the project has a dev server, start it. If pages should load, verify them in a real browser (Playwright) when available — not just curl. A page that returns 200 but has JS errors, hydration failures, or missing content is not verified. If tests exist, execute them. Verification should get as close to real user interaction as possible.
+**If the app can be run, run it. If it can be loaded in a browser, load it in a browser.** Structural checks (grep, file existence, wiring analysis) are necessary but not sufficient. If the project has a dev server, start it. If pages should load, verify them in a real browser — prefer MCP browser tools (Chrome DevTools) when available, fall back to Playwright, then curl as last resort. A page that returns 200 but has JS errors, hydration failures, or missing content is not verified. If tests exist, execute them. Verification should get as close to real user interaction as possible.
 </core_principle>
 
 <verification_process>
@@ -596,96 +596,146 @@ if [ "$IS_WEB_PROJECT" = "true" ]; then
   if [ "$READY" = "true" ]; then
     echo "Dev server ready on port $DEV_PORT"
 
-    # Determine verification method — prefer Playwright (real browser) over curl
-    HAS_PLAYWRIGHT=false
-    if [ -f "playwright.config.ts" ] || [ -f "playwright.config.js" ]; then
-      HAS_PLAYWRIGHT=true
-    elif npx playwright --version >/dev/null 2>&1; then
-      HAS_PLAYWRIGHT=true
-    fi
-
     # Extract page routes from src/pages/ or equivalent
     PAGES=$(find src/pages -name "*.astro" -o -name "*.tsx" -o -name "*.jsx" -o -name "*.vue" -o -name "*.svelte" 2>/dev/null | head -10)
 
     RUNTIME_RESULTS=""
+    VERIFICATION_METHOD=""
 
-    if [ "$HAS_PLAYWRIGHT" = "true" ]; then
-      # === PREFERRED: Browser verification via Playwright ===
-      # This catches JS errors, hydration failures, missing assets, and rendering issues
-      # that curl cannot detect.
+    # === Three-tier verification: MCP Browser → Playwright → curl ===
+    #
+    # Tier 1: MCP browser tools (Chrome DevTools / Claude-in-Chrome)
+    #   - Best: real browser, JS errors, rendered content, console messages
+    #   - Available when Chrome is running with MCP extension
+    #
+    # Tier 2: Playwright (local headless browser)
+    #   - Good: real browser, JS errors, rendered content
+    #   - Available when playwright is installed as project dependency
+    #
+    # Tier 3: curl (HTTP only)
+    #   - Basic: HTTP status + body size only, no JS error detection
+    #   - Always available
 
-      echo "Using Playwright for browser-based page verification"
+    # --- Tier 1: Try MCP browser tools ---
+    HAS_MCP_BROWSER=false
+
+    # Detect MCP availability by listing pages (lightweight probe)
+    MCP_PROBE=$(mcp__chrome-devtools__list_pages 2>/dev/null) && HAS_MCP_BROWSER=true
+
+    if [ "$HAS_MCP_BROWSER" = "true" ]; then
+      VERIFICATION_METHOD="MCP Browser (Chrome DevTools)"
+      echo "Using MCP browser tools for page verification"
 
       for page_file in $PAGES; do
         ROUTE=$(echo "$page_file" | sed 's|src/pages||' | sed 's|\.[^.]*$||' | sed 's|/index$|/|')
         [ -z "$ROUTE" ] && ROUTE="/"
 
-        # Run a quick Playwright check: load page, check for errors, verify content
-        PLAYWRIGHT_RESULT=$(node -e "
-          const { chromium } = require('playwright');
-          (async () => {
-            const browser = await chromium.launch();
-            const page = await browser.newPage();
-            const errors = [];
-            page.on('pageerror', e => errors.push(e.message));
-            page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
-            try {
-              const resp = await page.goto('http://localhost:${DEV_PORT}${ROUTE}', { timeout: 15000 });
-              const status = resp?.status() || 0;
-              const body = await page.content();
-              const title = await page.title();
-              console.log(JSON.stringify({ status, bodyLen: body.length, title, errors, ok: true }));
-            } catch (e) {
-              console.log(JSON.stringify({ status: 0, bodyLen: 0, title: '', errors: [e.message], ok: false }));
-            }
-            await browser.close();
-          })();
-        " 2>/dev/null)
+        PAGE_URL="http://localhost:${DEV_PORT}${ROUTE}"
 
-        PW_STATUS=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.status)" 2>/dev/null)
-        PW_BODY_LEN=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.bodyLen)" 2>/dev/null)
-        PW_ERRORS=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.errors.length)" 2>/dev/null)
-        PW_OK=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.ok)" 2>/dev/null)
+        # Navigate to page
+        mcp__chrome-devtools__navigate_page --url "$PAGE_URL" 2>/dev/null
+        sleep 2
 
-        if [ "$PW_OK" = "true" ] && [ "${PW_STATUS:-0}" = "200" ] && [ "${PW_ERRORS:-0}" = "0" ] && [ "${PW_BODY_LEN:-0}" -gt 100 ]; then
-          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${PW_STATUS} | ${PW_BODY_LEN}B | 0 errors | ✓ LOADS |"
-        elif [ "$PW_OK" = "true" ] && [ "${PW_STATUS:-0}" = "200" ] && [ "${PW_ERRORS:-0}" -gt 0 ]; then
-          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${PW_STATUS} | ${PW_BODY_LEN}B | ${PW_ERRORS} errors | ⚠ JS ERRORS |"
+        # Check for JS console errors
+        CONSOLE_MSGS=$(mcp__chrome-devtools__list_console_messages 2>/dev/null)
+        JS_ERRORS=$(echo "$CONSOLE_MSGS" | grep -ci "error" 2>/dev/null || echo "0")
+
+        # Take DOM snapshot to verify content rendered
+        SNAPSHOT=$(mcp__chrome-devtools__take_snapshot 2>/dev/null)
+        BODY_LEN=$(echo "$SNAPSHOT" | wc -c 2>/dev/null | tr -d ' ')
+
+        # Determine page status
+        if [ "${BODY_LEN:-0}" -gt 100 ] && [ "${JS_ERRORS:-0}" -eq 0 ]; then
+          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | 200 | ${BODY_LEN}B | 0 errors | ✓ LOADS |"
+        elif [ "${BODY_LEN:-0}" -gt 100 ] && [ "${JS_ERRORS:-0}" -gt 0 ]; then
+          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | 200 | ${BODY_LEN}B | ${JS_ERRORS} errors | ⚠ JS ERRORS |"
         else
-          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${PW_STATUS:-err} | ${PW_BODY_LEN:-0}B | ${PW_ERRORS:-?} errors | ✗ FAIL |"
+          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | err | ${BODY_LEN:-0}B | ${JS_ERRORS:-?} errors | ✗ FAIL |"
         fi
       done
-
-      # Run full Playwright test suite if e2e tests exist
-      if [ -f "playwright.config.ts" ] || [ -f "playwright.config.js" ]; then
-        echo "Running Playwright e2e test suite against live server..."
-        E2E_OUTPUT=$(timeout 180 npx playwright test --reporter=list 2>&1)
-        E2E_EXIT=$?
-      fi
 
     else
-      # === FALLBACK: curl verification (no browser available) ===
-      # Catches HTTP errors and empty pages but NOT JS errors, hydration failures, etc.
+      # --- Tier 2: Try Playwright ---
+      HAS_PLAYWRIGHT=false
+      if [ -f "playwright.config.ts" ] || [ -f "playwright.config.js" ]; then
+        HAS_PLAYWRIGHT=true
+      elif npx playwright --version >/dev/null 2>&1; then
+        HAS_PLAYWRIGHT=true
+      fi
 
-      echo "Playwright not available — falling back to curl verification"
+      if [ "$HAS_PLAYWRIGHT" = "true" ]; then
+        VERIFICATION_METHOD="Playwright (browser)"
+        echo "MCP browser not available — using Playwright for page verification"
 
-      for page_file in $PAGES; do
-        ROUTE=$(echo "$page_file" | sed 's|src/pages||' | sed 's|\.[^.]*$||' | sed 's|/index$|/|')
-        [ -z "$ROUTE" ] && ROUTE="/"
+        for page_file in $PAGES; do
+          ROUTE=$(echo "$page_file" | sed 's|src/pages||' | sed 's|\.[^.]*$||' | sed 's|/index$|/|')
+          [ -z "$ROUTE" ] && ROUTE="/"
 
-        HTTP_CODE=$(curl -s -o /tmp/spek-page-body.txt -w "%{http_code}" "http://localhost:${DEV_PORT}${ROUTE}" 2>/dev/null)
-        BODY_SIZE=$(wc -c < /tmp/spek-page-body.txt 2>/dev/null | tr -d ' ')
+          PLAYWRIGHT_RESULT=$(node -e "
+            const { chromium } = require('playwright');
+            (async () => {
+              const browser = await chromium.launch();
+              const page = await browser.newPage();
+              const errors = [];
+              page.on('pageerror', e => errors.push(e.message));
+              page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+              try {
+                const resp = await page.goto('http://localhost:${DEV_PORT}${ROUTE}', { timeout: 15000 });
+                const status = resp?.status() || 0;
+                const body = await page.content();
+                const title = await page.title();
+                console.log(JSON.stringify({ status, bodyLen: body.length, title, errors, ok: true }));
+              } catch (e) {
+                console.log(JSON.stringify({ status: 0, bodyLen: 0, title: '', errors: [e.message], ok: false }));
+              }
+              await browser.close();
+            })();
+          " 2>/dev/null)
 
-        if [ "$HTTP_CODE" = "200" ] && [ "${BODY_SIZE:-0}" -gt 100 ]; then
-          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${HTTP_CODE} | ${BODY_SIZE}B | n/a | ✓ LOADS |"
-        elif [ "$HTTP_CODE" = "200" ]; then
-          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${HTTP_CODE} | ${BODY_SIZE}B | n/a | ⚠ THIN |"
-        else
-          RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${HTTP_CODE} | ${BODY_SIZE}B | n/a | ✗ FAIL |"
+          PW_STATUS=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.status)" 2>/dev/null)
+          PW_BODY_LEN=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.bodyLen)" 2>/dev/null)
+          PW_ERRORS=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.errors.length)" 2>/dev/null)
+          PW_OK=$(echo "$PLAYWRIGHT_RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.ok)" 2>/dev/null)
+
+          if [ "$PW_OK" = "true" ] && [ "${PW_STATUS:-0}" = "200" ] && [ "${PW_ERRORS:-0}" = "0" ] && [ "${PW_BODY_LEN:-0}" -gt 100 ]; then
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${PW_STATUS} | ${PW_BODY_LEN}B | 0 errors | ✓ LOADS |"
+          elif [ "$PW_OK" = "true" ] && [ "${PW_STATUS:-0}" = "200" ] && [ "${PW_ERRORS:-0}" -gt 0 ]; then
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${PW_STATUS} | ${PW_BODY_LEN}B | ${PW_ERRORS} errors | ⚠ JS ERRORS |"
+          else
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${PW_STATUS:-err} | ${PW_BODY_LEN:-0}B | ${PW_ERRORS:-?} errors | ✗ FAIL |"
+          fi
+        done
+
+        # Run full Playwright test suite if e2e tests exist
+        if [ -f "playwright.config.ts" ] || [ -f "playwright.config.js" ]; then
+          echo "Running Playwright e2e test suite against live server..."
+          E2E_OUTPUT=$(timeout 180 npx playwright test --reporter=list 2>&1)
+          E2E_EXIT=$?
         fi
-      done
 
-      rm -f /tmp/spek-page-body.txt
+      else
+        # --- Tier 3: curl fallback (no browser available) ---
+        VERIFICATION_METHOD="curl (HTTP-only fallback)"
+        echo "No browser tools available — falling back to curl verification"
+
+        for page_file in $PAGES; do
+          ROUTE=$(echo "$page_file" | sed 's|src/pages||' | sed 's|\.[^.]*$||' | sed 's|/index$|/|')
+          [ -z "$ROUTE" ] && ROUTE="/"
+
+          HTTP_CODE=$(curl -s -o /tmp/spek-page-body.txt -w "%{http_code}" "http://localhost:${DEV_PORT}${ROUTE}" 2>/dev/null)
+          BODY_SIZE=$(wc -c < /tmp/spek-page-body.txt 2>/dev/null | tr -d ' ')
+
+          if [ "$HTTP_CODE" = "200" ] && [ "${BODY_SIZE:-0}" -gt 100 ]; then
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${HTTP_CODE} | ${BODY_SIZE}B | n/a | ✓ LOADS |"
+          elif [ "$HTTP_CODE" = "200" ]; then
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${HTTP_CODE} | ${BODY_SIZE}B | n/a | ⚠ THIN |"
+          else
+            RUNTIME_RESULTS="${RUNTIME_RESULTS}\n| ${ROUTE} | ${HTTP_CODE} | ${BODY_SIZE}B | n/a | ✗ FAIL |"
+          fi
+        done
+
+        rm -f /tmp/spek-page-body.txt
+      fi
     fi
   else
     echo "FAIL: Dev server did not start within 30s"
@@ -706,7 +756,7 @@ fi
 
 **Dev server:** {started | failed to start}
 **Port:** {port}
-**Method:** {Playwright (browser) | curl (fallback)}
+**Method:** {MCP Browser (Chrome DevTools) | Playwright (browser) | curl (HTTP-only fallback)}
 
 | Route | HTTP Status | Body Size | JS Errors | Status |
 |-------|-------------|-----------|-----------|--------|
