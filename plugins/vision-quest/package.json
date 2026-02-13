@@ -1,0 +1,8 @@
+{
+  "name": "vision-quest",
+  "version": "1.0.0",
+  "description": "Goal-driven development workflow: pick goal, execute with TDD, reconcile learnings, repeat",
+  "keywords": ["claude", "claude-code", "ai", "goal-driven", "tdd", "vision-quest"],
+  "author": "",
+  "license": "MIT"
+}
