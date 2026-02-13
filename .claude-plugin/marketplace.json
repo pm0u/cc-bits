@@ -23,6 +23,11 @@
       "name": "statusline",
       "source": "./plugins/statusline",
       "description": "Enhanced statusline showing model, directory, context usage, and API rate limits"
+    },
+    {
+      "name": "vision-quest",
+      "source": "./plugins/vision-quest",
+      "description": "Goal-driven development: pick goal, execute with TDD, reconcile learnings, repeat"
     }
   ]
 }
