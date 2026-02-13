@@ -50,6 +50,7 @@ Then let the executor figure out the HOW. That's what it's good at — it can re
 | Command | Description |
 |---------|-------------|
 | `/vq:go` | Execute the next goal (or initialize if no `.vq/` exists) |
+| `/vq:trek` | Execute all remaining goals end-to-end without re-prompting |
 | `/vq:init` | Interactive vision setup — define purpose and initial goals |
 | `/vq:status` | Show current state — completed, current, and upcoming goals |
 | `/vq:help` | Command reference |
@@ -216,4 +217,4 @@ The orchestrator's context grows with each goal. To keep it sustainable:
 - **No CLI tools** — all state management via markdown parsing. Pure prompts.
 - **Context pasting, not file references** — `vq:go` reads files and pastes content into the executor prompt. Sub-agents don't have access to the `@` reference system.
 - **Reconciliation in the skill, not the agent** — the executor returns structured XML, `vq:go` does reconciliation in the main conversation context so the user has visibility.
-- **One goal per invocation** — user stays in the loop. Run `/vq:go` again or say "keep going" to continue.
+- **One goal per `/vq:go`** — user stays in the loop. Use `/vq:trek` to execute all remaining goals automatically.

@@ -17,6 +17,7 @@ Goal-driven development: **pick goal → execute (TDD) → reconcile learnings �
 | Command | Description |
 |---------|-------------|
 | `/vq:go` | Execute the next goal (or initialize if no `.vq/` exists) |
+| `/vq:trek` | Execute all remaining goals end-to-end without re-prompting |
 | `/vq:init` | Interactive vision setup — define purpose and initial goals |
 | `/vq:status` | Show current state — completed, current, and upcoming goals |
 | `/vq:help` | This command reference |
@@ -41,5 +42,5 @@ Goal-driven development: **pick goal → execute (TDD) → reconcile learnings �
 - **Goals, not tasks** — Each goal has acceptance criteria that become tests. The executor decides HOW.
 - **TDD execution** — Failing tests first (RED), implement (GREEN), optional refactor.
 - **Bidirectional reconciliation** — Learnings flow up into artifacts, goals get adjusted based on discoveries.
-- **One goal per `/vq:go`** — Stay in the loop. Say "keep going" to continue.
+- **One goal per `/vq:go`** — Stay in the loop. Use `/vq:trek` to execute all remaining goals automatically.
 </reference>
