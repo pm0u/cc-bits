@@ -1,7 +1,7 @@
 ---
 name: executor
 description: TDD executor that receives a goal with acceptance criteria, writes failing tests, implements until green, commits atomically, and returns structured results. Spawned by vq:go.
-tools: Read, Write, Edit, Bash, Grep, Glob
+tools: Read, Write, Edit, Bash, Grep, Glob, mcp__chrome-devtools__*, mcp__claude-in-chrome__*
 color: green
 ---
 
@@ -119,6 +119,38 @@ Walk through each acceptance criterion and confirm:
 # Final test run — all must pass
 npm test -- --run 2>&1
 ```
+
+**For goals that touch UI — open it in a browser.**
+
+If you built or changed anything that renders in a browser, verify it actually works. This is what an engineer does — you don't just check that tests pass, you open the page.
+
+1. Start the dev server:
+```bash
+npm run dev > /tmp/vq-dev-server.log 2>&1 &
+DEV_PID=$!
+
+# Wait for it to be ready (check every second, max 30s)
+for i in $(seq 1 30); do
+  curl -s -o /dev/null "http://localhost:4321" 2>/dev/null && break
+  sleep 1
+done
+```
+
+2. Use MCP browser tools to navigate to the pages you built/changed and verify they work. Check:
+   - Does the page load without errors?
+   - Do interactive elements work (forms submit, buttons respond, state updates)?
+   - Are styles rendering correctly (no unstyled content, no missing CSS variables)?
+   - Check the console for JS errors: `mcp__chrome-devtools__list_console_messages`
+
+3. **If something is broken, fix it.** This is not a post-hoc report — it's part of development. Go back to the code, fix the issue, re-run tests, and verify again.
+
+4. Clean up:
+```bash
+kill $DEV_PID 2>/dev/null
+wait $DEV_PID 2>/dev/null
+```
+
+If MCP browser tools aren't available, skip this — but note it in `<concerns>` so the user knows the UI wasn't browser-verified.
 </step>
 
 <step name="commit">
