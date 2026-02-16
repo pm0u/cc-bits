@@ -28,6 +28,11 @@
       "name": "vision-quest",
       "source": "./plugins/vision-quest",
       "description": "Goal-driven development: pick goal, execute with TDD, reconcile learnings, repeat"
+    },
+    {
+      "name": "trak",
+      "source": "./plugins/trak",
+      "description": "Agent-driven ticketing: propose tickets, refine into goals, execute with TDD, discover new work"
     }
   ]
 }
