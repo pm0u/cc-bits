@@ -26,13 +26,18 @@ If neither directory has files, tell the user: "Nothing to run. Use `/trak:propo
 **Execute goals in a loop**
 
 Repeat:
-1. Invoke `Skill(skill="trak:go")`
-2. After it completes, check if `inprogress/` or `todo/` still have tickets:
+1. Snapshot the current ticket list before invoking:
    ```bash
    ls .trak/inprogress/ .trak/todo/ 2>/dev/null
    ```
-3. If either has files, continue the loop
-4. If both are empty, stop
+2. Invoke `Skill(skill="trak:go")`
+3. After it completes, snapshot again:
+   ```bash
+   ls .trak/inprogress/ .trak/todo/ 2>/dev/null
+   ```
+4. If both snapshots are identical (same files, nothing moved), `trak:go` exited early — all remaining tickets are blocked. Stop and tell the user which tickets remain and what's blocking them.
+5. If the post-snapshot is empty, all tickets are done — stop.
+6. Otherwise continue the loop.
 
 Display a final summary when all tickets are complete:
 

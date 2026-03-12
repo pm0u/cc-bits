@@ -33,7 +33,7 @@ Read in parallel:
    ls .trak/proposed/ .trak/todo/ .trak/inprogress/ .trak/completed/ .trak/rejected/ 2>/dev/null
    ```
 3. If `inprogress/` has a ticket — read it for goal detail
-4. Read first 5 files from `todo/` — title and type only
+4. Read first 5 files from `todo/` — title, type, and `blocked-by` frontmatter field
 5. `.trak/LESSONS.md` — count entries
 </step>
 
@@ -54,7 +54,7 @@ In Progress:
 {If todo/ has tickets:}
 Up Next:
   1. #{id} {title} [{type}]
-  2. #{id} {title} [{type}]
+  2. #{id} {title} [{type}]  [blocked by #N, #M]  ← if blocked-by frontmatter is non-empty
   3. #{id} {title} [{type}]
   ...
 

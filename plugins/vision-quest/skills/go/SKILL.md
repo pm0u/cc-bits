@@ -33,6 +33,12 @@ Skill(skill="vq:init")
 Then stop — the user will run `/vq:go` again after init completes.
 </step>
 
+<step name="read_trust">
+**Resolve the trust level**
+
+Read `.vq/config.json` — get the `trust` value. Carry it through execution.
+</step>
+
 <step name="read_goal">
 **Read and parse the current goal**
 
@@ -149,7 +155,10 @@ Read `.vq/GOALS.md` and:
 1. Move the completed goal from `## Current` to `## Completed`, checking off all criteria
 2. Process adjustments:
    - **MINOR**: Auto-apply to relevant goals, note what changed
-   - **SIGNIFICANT**: Present to user via `AskUserQuestion` with the adjustment details and let them approve, modify, or reject
+   - **SIGNIFICANT**: Handle based on trust level:
+     - `low` — `AskUserQuestion` with full context. Full discussion.
+     - `med` — Synthesize into a proposed action with one-line rationale. `AskUserQuestion`: "Proposed: [action] because [reason]. Apply / adjust / reject?" One-touch.
+     - `high` — Spawn `vision-quest:planner` with adjustment details + full context. Apply its decision. Append decision + rationale to HISTORY.md.
 3. Renumber remaining goals under `## Current` if needed
 
 Write the updated file.
@@ -194,9 +203,17 @@ Write the updated file.
 <step name="handle_concerns">
 **Handle concerns**
 
-If `<concerns>` has content:
-- Display concerns prominently
-- If any concern is critical (uses language like "blocks", "prevents", "incompatible"), use `AskUserQuestion` to ask the user how to proceed
+If `<concerns>` has content, classify each:
+
+- **Blocking** — broken build, missing infrastructure, constraint violation, ambiguous criteria. Always interrupt regardless of trust level.
+- **Advisory** — scope, approach, tech debt, assumptions.
+
+For **blocking** concerns: always `AskUserQuestion`. Do not proceed until resolved.
+
+For **advisory** concerns:
+- `low` — `AskUserQuestion` with full context
+- `med` — Synthesize proposed resolution. `AskUserQuestion`: "Concern: [X]. Proposed: [action]. Proceed / adjust / reject?"
+- `high` — Spawn `vision-quest:planner` with concern + context. Log decision to HISTORY.md. Continue.
 </step>
 
 <step name="summary">
@@ -206,10 +223,12 @@ Display:
 
 ```
 Goal completed: {goal name}
+Trust: {low|med|high}
 Commits: {count} ({short hash list})
 Tests: {test file count}
 Lessons learned: {count of new entries added}
 Adjustments: {applied count} applied{, N pending user review if any}
+Autonomous decisions: {count, or "none"}  ← only shown if trust: med or high
 Concerns: {count, or "none"}
 
 Next goal: {next goal name, or "All goals complete!"}

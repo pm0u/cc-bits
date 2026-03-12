@@ -84,15 +84,33 @@ If the assessment reveals the ticket should be deprioritized or split:
 - Use `AskUserQuestion` for the user to decide
 </step>
 
+<step name="assess_trust">
+**Recommend a trust level for this ticket**
+
+Based on the codebase assessment, recommend a trust level:
+
+- **high** — Well-understood scope, clear implementation path, existing tests to lean on, no architectural implications
+- **med** — Some unknowns but bounded, moderate complexity, familiar area of the codebase
+- **low** — Significant unknowns, architectural implications, first time in this area, or anything where a wrong autonomous decision would be hard to recover from
+
+Read `.trak/config.json` to get the project default. If the ticket's complexity matches the default, no need to ask — just inherit it silently.
+
+If the ticket warrants a different level than the default, use `AskUserQuestion`:
+```
+This ticket looks like [reason]. Recommended trust: [level] (project default: [default]).
+Trust level: high / med / low?
+```
+
+Write the chosen value to the ticket's `trust:` frontmatter field.
+</step>
+
 <step name="present_goals">
 **Present goals to user for review**
 
-Show the complete goal breakdown and ask the user to review. Use `AskUserQuestion`:
-- Approve as-is
-- Adjust (then discuss changes)
-- Cancel refinement
+Read `.trak/config.json` and the ticket's `trust:` field.
 
-Iterate if the user wants changes.
+- **trust: low** — Show the complete goal breakdown and ask the user to review via `AskUserQuestion` (approve / adjust / cancel). Iterate if the user wants changes.
+- **trust: med or high** — Show the goal breakdown and ask: "Goals look good? (yes / adjust)" — one-touch approval. If they say yes, proceed immediately.
 </step>
 
 <step name="move_to_inprogress">

@@ -251,7 +251,14 @@ If any criteria were NOT met, explain why here.]
 - BUG: {title} — Context: {file:line or description}
 - FEATURE: {title} — Context: {description}
 - REFACTOR: {title} — Context: {description}
-- RESEARCH: {title} — Context: {description}]
+- RESEARCH: {title} — Context: {description}
+
+If a discovered ticket should only be worked on after the current ticket is complete, add:
+- FEATURE: {title} — Context: {description} [blocked-by: current]
+  (`current` is a reserved keyword — trak:go resolves it to the current ticket's ID)
+
+If it's blocked by a specific ticket ID you know about:
+- BUG: {title} — Context: {description} [blocked-by: #N]]
 </tickets>
 
 <verification>

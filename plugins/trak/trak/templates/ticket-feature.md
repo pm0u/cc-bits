@@ -5,6 +5,7 @@ type: feature
 source: {SOURCE}
 tags: []
 blocked-by: []
+trust:
 ---
 
 # {Title}

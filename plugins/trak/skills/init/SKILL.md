@@ -65,6 +65,24 @@ For each work item, capture:
 Use `AskUserQuestion` to guide the discussion. Don't over-refine — tickets get refined later via `/trak:refine`.
 </step>
 
+<step name="set_trust">
+**Set the trust level**
+
+Use `AskUserQuestion`:
+
+```
+How much should the agent self-direct when it hits surprises mid-execution?
+
+  low  — Full discussion at every decision point (default, recommended for new projects)
+  med  — Agent proposes a recommendation, you approve/adjust/reject in one step
+  high — Agent handles decisions autonomously and logs reasoning; you review at the end
+
+You can override this per-ticket later.
+```
+
+Write the chosen value to `.trak/config.json`.
+</step>
+
 <step name="create_directory">
 **Create the .trak/ directory structure**
 
@@ -101,7 +119,7 @@ Number tickets sequentially starting at 001, in priority order from the discussi
 **Commit the initialized artifacts**
 
 ```bash
-git add .trak/PROJECT.md .trak/LESSONS.md .trak/HISTORY.md .trak/todo/
+git add .trak/config.json .trak/PROJECT.md .trak/LESSONS.md .trak/HISTORY.md .trak/todo/
 git commit -m "feat: initialize trak board
 
 - Create project context and backlog structure

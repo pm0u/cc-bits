@@ -64,6 +64,22 @@ For each goal, help the user define:
 Use `AskUserQuestion` to guide the discussion. Push back gently if goals are too vague ("make it fast") or too granular ("rename this variable").
 </step>
 
+<step name="set_trust">
+**Set the trust level**
+
+Use `AskUserQuestion`:
+
+```
+How much should the agent self-direct when it hits surprises mid-execution?
+
+  low  — Full discussion at every decision point (default, recommended for new projects)
+  med  — Agent proposes a recommendation, you approve/adjust/reject in one step
+  high — Agent handles decisions autonomously and logs reasoning; you review at the end
+```
+
+Write the chosen value to `.vq/config.json`.
+</step>
+
 <step name="create_artifacts">
 **Create the .vq/ directory and artifacts**
 
@@ -110,7 +126,7 @@ Create four files based on the templates and the discussion:
 **Commit the initialized artifacts**
 
 ```bash
-git add .vq/VISION.md .vq/GOALS.md .vq/LESSONS.md .vq/HISTORY.md
+git add .vq/config.json .vq/VISION.md .vq/GOALS.md .vq/LESSONS.md .vq/HISTORY.md
 git commit -m "feat: initialize Vision Quest
 
 - Define project vision and purpose

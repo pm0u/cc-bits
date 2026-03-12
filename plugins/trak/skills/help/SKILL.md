@@ -23,6 +23,7 @@ Agent-driven ticketing: **propose → triage → refine → execute (TDD) → di
 | `/trak:triage` | Review `proposed/` tickets — accept, reject, or skip |
 | `/trak:refine` | Break a `todo/` ticket into executable goals |
 | `/trak:board` | Text-based kanban view of the board |
+| `/trak:compact` | Compress LESSONS.md — merge duplicates, condense stale entries |
 | `/trak:help` | This command reference |
 
 ## How It Works
@@ -65,4 +66,6 @@ proposed/ → todo/ → inprogress/ → completed/
 - **Discovery** — The executor captures bugs, features, refactors, and research questions it encounters. These become new proposed tickets.
 - **Bidirectional reconciliation** — Learnings flow into LESSONS.md and PROJECT.md. Goals get adjusted based on discoveries.
 - **One goal per `/trak:go`** — Stay in the loop. Use `/trak:trek` to execute all remaining goals automatically.
+- **Blocking** — Tickets can declare `blocked-by: [#N]` in frontmatter. `/trak:go` skips blocked tickets and picks the first unblocked one. The executor can also set `[blocked-by: current]` on discovered tickets.
+- **Compaction** — Run `/trak:compact` periodically to compress LESSONS.md. Pitfalls decay slowest, patterns fastest.
 </reference>
