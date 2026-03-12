@@ -3,7 +3,8 @@ name: trak:trek
 description: Loop trak:go until all tickets are done — execute goals end-to-end without re-prompting
 allowed-tools:
   - Read
-  - Skill
+  - Bash
+  - Agent
 ---
 
 <objective>
@@ -25,12 +26,21 @@ If neither directory has files, tell the user: "Nothing to run. Use `/trak:propo
 <step name="loop">
 **Execute goals in a loop**
 
+Each iteration runs `trak:go` as an isolated subagent so the main context stays lean — state is persisted to `.trak/` files between iterations.
+
 Repeat:
 1. Snapshot the current ticket list before invoking:
    ```bash
    ls .trak/inprogress/ .trak/todo/ 2>/dev/null
    ```
-2. Invoke `Skill(skill="trak:go")`
+2. Spawn a subagent to run one trak:go cycle:
+   ```
+   Agent(
+     subagent_type="general-purpose",
+     description="Execute trak:go",
+     prompt="Invoke the trak:go skill: Skill(skill='trak:go'). Wait for it to complete and return 'done'."
+   )
+   ```
 3. After it completes, snapshot again:
    ```bash
    ls .trak/inprogress/ .trak/todo/ 2>/dev/null

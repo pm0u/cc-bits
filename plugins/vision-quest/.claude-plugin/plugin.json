@@ -1,5 +1,5 @@
 {
   "name": "vision-quest",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Goal-driven development workflow: pick goal, execute with TDD, reconcile learnings, repeat"
 }

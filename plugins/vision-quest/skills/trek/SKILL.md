@@ -3,7 +3,8 @@ name: vq:trek
 description: Execute all remaining goals end-to-end without re-prompting — loops vq:go until done
 allowed-tools:
   - Read
-  - Skill
+  - Bash
+  - Agent
 ---
 
 <objective>
@@ -21,8 +22,17 @@ Read `.vq/GOALS.md`. If `## Current` has no goals, tell the user: "No goals to r
 <step name="loop">
 **Execute goals in a loop**
 
+Each iteration runs `vq:go` as an isolated subagent so the main context stays lean — state is persisted to `.vq/` files between iterations.
+
 Repeat:
-1. Invoke `Skill(skill="vq:go")`
+1. Spawn a subagent to run one vq:go cycle:
+   ```
+   Agent(
+     subagent_type="general-purpose",
+     description="Execute vq:go",
+     prompt="Invoke the vq:go skill: Skill(skill='vq:go'). Wait for it to complete and return 'done'."
+   )
+   ```
 2. After it completes, read `.vq/GOALS.md`
 3. If `## Current` still has goals, continue the loop
 4. If `## Current` is empty, stop
