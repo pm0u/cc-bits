@@ -120,11 +120,13 @@ Walk through each acceptance criterion and confirm:
 npm test -- --run 2>&1
 ```
 
-**For goals that touch UI — open it in a browser.**
+**For goals that produce running behavior — verify against the real application.**
 
-If you built or changed anything that renders in a browser, verify it actually works.
+Unit tests verify components in isolation. This step verifies the system actually works end-to-end. If your goal produces anything that runs (UI pages, API endpoints, CLI output, server behavior), start the application and verify the acceptance criteria are met against the real, running system.
 
-1. Start the dev server:
+This catches the class of bugs where tests pass (because they mock boundaries) but the real system fails (because the mocks were wrong).
+
+1. Start the application:
 ```bash
 npm run dev > /tmp/trak-dev-server.log 2>&1 &
 DEV_PID=$!
@@ -136,21 +138,25 @@ for i in $(seq 1 30); do
 done
 ```
 
-2. Use MCP browser tools to navigate to the pages you built/changed and verify they work. Check:
-   - Does the page load without errors?
-   - Do interactive elements work (forms submit, buttons respond, state updates)?
-   - Are styles rendering correctly (no unstyled content, no missing CSS variables)?
-   - Check the console for JS errors: `mcp__chrome-devtools__list_console_messages`
+2. **Verify each acceptance criterion against the running application.** Don't just check that pages load — check that the actual expected behavior is present:
+   - If a criterion says "displays X" — confirm X is actually visible, not an empty or fallback state
+   - If a criterion says "fetches data from Y" — confirm real data came back, not a silent failure
+   - If a criterion says "user can do Z" — perform Z end-to-end
+   - Check the console/logs for errors, failed network requests, or swallowed exceptions
 
-3. **If something is broken, fix it.** This is not a post-hoc report — it's part of development. Go back to the code, fix the issue, re-run tests, and verify again.
+   Use whatever tools match the goal: MCP browser tools for UI, curl for APIs, run the CLI for CLI tools. The method doesn't matter — what matters is that you're testing the real system, not mocks.
 
-4. Clean up:
+3. **If something fails, that's a real bug — fix it.** This is not a report. Go back to the code, fix the issue, re-run unit tests, and verify again. If your mocked tests passed but the real app fails, your mocks were wrong — fix the implementation, not just the mock.
+
+4. **Be skeptical of empty states.** A page that renders "No results found" without errors is not necessarily working. If the goal expected content to be present, an empty state is a failure. Investigate why.
+
+5. Clean up:
 ```bash
 kill $DEV_PID 2>/dev/null
 wait $DEV_PID 2>/dev/null
 ```
 
-If MCP browser tools aren't available, skip this — but note it in `<concerns>` so the user knows the UI wasn't browser-verified.
+If the application can't be started locally (no dev server, external dependencies unavailable), skip this — but note it in `<concerns>` so the user knows end-to-end verification was skipped and why.
 </step>
 
 <step name="commit">
