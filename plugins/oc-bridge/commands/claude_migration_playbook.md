@@ -14,7 +14,7 @@ This is a step-by-step tutorial for integrating OpenCode into an existing Claude
 2. List your user-level Claude assets:
    - `~/.claude/commands/`
    - `~/.claude/skills/`
-3. Decide which items should be shared with OpenCode (usually all of them).
+3. Decide which items should be shared with OpenCode, usually all of them.
 
 ## 2) Create OpenCode project scaffolding
 1. In your repo root, create `.opencode/` if missing.

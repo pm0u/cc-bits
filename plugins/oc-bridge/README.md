@@ -8,9 +8,9 @@ Bridge an existing Claude Code setup into OpenCode without duplicating skills, a
 claude plugin install oc-bridge@pm0u-cc-bits
 ```
 
-## Included Skills
+## Commands
 
-- `oc-bridge:migrate` - Inventory Claude assets and apply the wrapper/symlink migration playbook for OpenCode.
+- `/oc-bridge:migrate` - Start the migration workflow explicitly from Claude Code.
 
 ## What It Covers
 
@@ -23,4 +23,5 @@ claude plugin install oc-bridge@pm0u-cc-bits
 
 - The workflow keeps Claude assets as the source of truth.
 - OpenCode reuses them through symlinks for skills and wrappers for commands and agents.
+- This plugin is command-driven; there is no companion skill to auto-invoke.
 - This plugin documents the migration path; it does not assume OpenCode has a matching marketplace install path.
