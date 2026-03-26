@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "A collection of tools I like",
-    "version": "1.4.3"
+    "version": "1.4.4"
   },
   "plugins": [
     {
@@ -33,6 +33,11 @@
       "name": "trak",
       "source": "./plugins/trak",
       "description": "Agent-driven ticketing: propose tickets, refine into goals, execute with TDD, discover new work"
+    },
+    {
+      "name": "oc-bridge",
+      "source": "./plugins/oc-bridge",
+      "description": "Bridge Claude Code skills, commands, agents, and plugins into OpenCode with wrappers and symlinks"
     }
   ]
 }

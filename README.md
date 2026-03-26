@@ -16,6 +16,10 @@ Spec-driven development with triangle enforcement (SPEC <-> tests <-> code). Com
 
 Enhanced statusline for Claude Code showing model, directory, context usage, and API rate limits.
 
+### [OC Bridge](./plugins/oc-bridge/README.md)
+
+Migration playbook for reusing Claude Code skills, agents, commands, and marketplace plugins inside OpenCode through wrappers and symlinks.
+
 ## Installation
 
 ```bash
@@ -26,6 +30,7 @@ claude plugin marketplace add pm0u/cc-bits
 claude plugin install shipit@pm0u-cc-bits
 claude plugin install spek@pm0u-cc-bits
 claude plugin install statusline@pm0u-cc-bits
+claude plugin install oc-bridge@pm0u-cc-bits
 ```
 
 ## License
