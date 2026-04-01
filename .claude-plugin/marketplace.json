@@ -38,6 +38,16 @@
       "name": "oc-bridge",
       "source": "./plugins/oc-bridge",
       "description": "Bridge Claude Code skills, commands, agents, and plugins into OpenCode with wrappers and symlinks"
+    },
+    {
+      "name": "crew",
+      "source": "./plugins/crew",
+      "description": "Reusable agents for code review, codebase mapping, and integration checking"
+    },
+    {
+      "name": "phoenix",
+      "source": "./plugins/phoenix",
+      "description": "Distill failed attempts into ASHES.md learnings and reset to a clean baseline"
     }
   ]
 }
