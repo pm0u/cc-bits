@@ -548,6 +548,9 @@ Task(prompt="
 **Research (if exists):**
 @.planning/research/SUMMARY.md
 
+**Prior attempt learnings (if exists):**
+@ASHES.md
+
 **Config:**
 @.planning/config.json
 

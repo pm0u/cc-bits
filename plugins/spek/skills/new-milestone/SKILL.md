@@ -234,6 +234,16 @@ Analyze requirements and break into phases:
 - Then features (UI, API, workflows)
 - Then polish (error handling, edge cases, optimization)
 
+**Check for prior attempt learnings:**
+
+```bash
+ASHES_CONTENT=""
+if [ -f ASHES.md ]; then
+  ASHES_CONTENT=$(cat ASHES.md)
+  echo "Found ASHES.md — prior attempt learnings will inform roadmap"
+fi
+```
+
 **Use Task tool to spawn roadmapper agent:**
 
 ```
@@ -247,6 +257,10 @@ $SPEC_CONTENT
 </spec_content>
 
 <has_children>$HAS_CHILDREN</has_children>
+
+<ashes>
+$ASHES_CONTENT
+</ashes>
 
 <instructions>
 Generate ROADMAP.md by breaking requirements into 3-5 phases.

@@ -377,14 +377,31 @@ Categories: 4
 Total v1: 11 requirements
 ```
 
-## Step 3: Load Research Context (if exists)
+## Step 3: Load Research Context and Prior Learnings
 
+**Research (if exists):**
 If research/SUMMARY.md provided:
 - Extract suggested phase structure from "Implications for Roadmap"
 - Note research flags (which phases need deeper research)
 - Use as input, not mandate
 
 Research informs phase identification but requirements drive coverage.
+
+**ASHES.md (if exists — prior attempt learnings):**
+
+```bash
+cat ASHES.md 2>/dev/null
+```
+
+If ASHES.md exists, this is a **retry after a previous failed attempt.** Treat its contents as high-priority context:
+
+- **Spec Corrections:** Requirements or assumptions that proved wrong — validate these against current REQUIREMENTS.md
+- **Structural Learnings:** Phase ordering and decomposition mistakes — use these to inform phase identification and sequencing in Step 4
+- **Technical Learnings:** Implementation patterns that worked or failed — carry forward into phase descriptions
+- **Constraints Discovered:** Real constraints not in the spec — treat as hard constraints for phase planning
+- **What Worked:** Patterns and code worth preserving — reference in relevant phase descriptions
+
+ASHES.md learnings take precedence over research suggestions when they conflict. Direct experience outweighs ecosystem research.
 
 ## Step 4: Identify Phases
 

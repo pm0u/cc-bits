@@ -241,6 +241,36 @@ fi
 ```
 
 Report: "Found {N} plans in {phase_dir}"
+
+**Record baseline commit (first execution only):**
+
+```bash
+# Check if baseline already recorded
+HAS_BASELINE=$(node -e "
+  const fs = require('fs');
+  try {
+    const c = JSON.parse(fs.readFileSync('.planning/config.json'));
+    console.log(c.baseline_commit ? 'true' : 'false');
+  } catch { console.log('false'); }
+" 2>/dev/null)
+
+if [ "$HAS_BASELINE" = "false" ]; then
+  # Record current HEAD as baseline (last commit before any execution)
+  BASELINE=$(git rev-parse HEAD)
+  node -e "
+    const fs = require('fs');
+    try {
+      const path = '.planning/config.json';
+      const c = fs.existsSync(path) ? JSON.parse(fs.readFileSync(path)) : {};
+      c.baseline_commit = '$BASELINE';
+      fs.writeFileSync(path, JSON.stringify(c, null, 2) + '\n');
+    } catch(e) { console.error(e); }
+  "
+  echo "Recorded baseline commit: $BASELINE"
+fi
+```
+
+This is consumed by `/phoenix:rise` to know where to reset source code when starting over.
 </step>
 
 <step name="discover_plans">

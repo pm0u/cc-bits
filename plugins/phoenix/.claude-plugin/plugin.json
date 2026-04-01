@@ -1,0 +1,5 @@
+{
+  "name": "phoenix",
+  "version": "0.1.0",
+  "description": "Distill failed or stalled attempts into learnings (ASHES.md) and reset to a clean baseline for another try"
+}
