@@ -1,0 +1,5 @@
+{
+  "name": "crew",
+  "version": "0.1.0",
+  "description": "Reusable agents for code review, analysis, and quality checks"
+}

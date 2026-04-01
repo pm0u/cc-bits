@@ -13,10 +13,10 @@ Model profiles control which Claude model each SPEK agent uses. This allows bala
 | spek:project-researcher | opus | sonnet | haiku |
 | spek:research-synthesizer | sonnet | sonnet | haiku |
 | spek:debugger | opus | sonnet | sonnet |
-| spek:codebase-mapper | sonnet | haiku | haiku |
+| crew:codebase-mapper | sonnet | haiku | haiku |
 | spek:verifier | sonnet | sonnet | haiku |
 | spek:plan-checker | sonnet | sonnet | haiku |
-| spek:integration-checker | sonnet | sonnet | haiku |
+| crew:integration-checker | sonnet | sonnet | haiku |
 
 ## Profile Philosophy
 
@@ -118,5 +118,5 @@ Executors follow explicit PLAN.md instructions. The plan already contains the re
 **Why Sonnet (not Haiku) for verifiers in balanced?**
 Verification requires goal-backward reasoning - checking if code *delivers* what the phase promised, not just pattern matching. Sonnet handles this well; Haiku may miss subtle gaps.
 
-**Why Haiku for spek:codebase-mapper?**
+**Why Haiku for crew:codebase-mapper?**
 Read-only exploration and pattern extraction. No reasoning required, just structured output from file contents.

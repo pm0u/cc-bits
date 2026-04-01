@@ -209,6 +209,13 @@ This helps users understand resource usage and identify heavy plans.
    - Collect summaries from all plans
    - Report phase completion status
 
+5.5. **Review implementation** (if `review` config is not `false`)
+   - Spawn `crew:reviewer` agent with phase summaries and commit range
+   - Reviewer evaluates approach quality, pattern consistency, complexity proportionality
+   - Writes `{phase}-REVIEW.md` to phase directory
+   - If verdict is "Rethink": pause and ask user before proceeding
+   - If "Worth a second look" or "Ship it": continue
+
 6. **Commit any orchestrator corrections**
    Check for uncommitted changes before verification:
    ```bash

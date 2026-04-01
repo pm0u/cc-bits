@@ -598,6 +598,85 @@ After all waves complete, aggregate results:
 ```
 </step>
 
+<step name="review_implementation">
+Run opinionated review of what was built. This is NOT verification (did we build what the plan said) — it's evaluation (was the approach good).
+
+**Check config:**
+
+```bash
+REVIEW_ENABLED=$(node -e "
+  const fs = require('fs');
+  try {
+    const c = JSON.parse(fs.readFileSync('.planning/config.json'));
+    console.log(c.review !== false ? 'true' : 'false');
+  } catch { console.log('true'); }
+" 2>/dev/null)
+```
+
+Default: enabled. Set `"review": false` in config.json to skip.
+
+**If disabled:** Skip to verify_phase_goal.
+
+**If enabled:**
+
+1. Gather context for reviewer:
+
+```bash
+# Phase goal from roadmap
+PHASE_GOAL=$(grep -A 3 "Phase $PHASE_NUM" .planning/ROADMAP.md | head -3)
+
+# All summaries from this phase
+SUMMARIES=$(cat "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null)
+
+# Git commits from this phase's execution
+FIRST_COMMIT=$(grep -h '`[a-f0-9]\{7\}`' "$PHASE_DIR"/*-SUMMARY.md | head -1 | grep -oE '[a-f0-9]{7}' | head -1)
+LAST_COMMIT=$(grep -h '`[a-f0-9]\{7\}`' "$PHASE_DIR"/*-SUMMARY.md | tail -1 | grep -oE '[a-f0-9]{7}' | tail -1)
+```
+
+2. Spawn reviewer:
+
+```
+Task(
+  prompt="Review the implementation of phase {phase_number}-{phase_name}.
+
+Phase goal: {phase_goal}
+
+Summaries:
+{summaries}
+
+Commits: {first_commit}..{last_commit}
+
+Phase directory: {phase_dir}
+
+Review the actual code changes. Evaluate whether the approach was good, not just whether it was completed. Write {phase}-REVIEW.md to the phase directory.",
+  subagent_type="crew:reviewer",
+  model="sonnet"
+)
+```
+
+3. Report review findings:
+
+```bash
+# Read verdict
+VERDICT=$(grep "^- \*\*" "$PHASE_DIR"/*-REVIEW.md | head -1)
+```
+
+**Output:**
+```
+## Code Review
+
+**Verdict:** {verdict}
+
+{Brief summary of concerns/observations from REVIEW.md}
+
+Full report: {phase_dir}/{phase}-REVIEW.md
+```
+
+**If verdict is "Rethink":** Pause and ask user whether to proceed to verification or address concerns first.
+
+**If verdict is "Worth a second look" or "Ship it":** Continue to verify_phase_goal.
+</step>
+
 <step name="verify_phase_goal">
 Verify phase achieved its GOAL, not just completed its TASKS.
 

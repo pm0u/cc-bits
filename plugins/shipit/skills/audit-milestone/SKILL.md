@@ -18,7 +18,7 @@ Verify milestone achieved its definition of done. Check requirements coverage, c
 </objective>
 
 <execution_context>
-<!-- Spawns shipit:integration-checker agent which has all audit expertise baked in -->
+<!-- Spawns crew:integration-checker agent which has all audit expertise baked in -->
 </execution_context>
 
 <context>
@@ -53,7 +53,7 @@ Default to "balanced" if not set.
 
 | Agent | quality | balanced | budget |
 |-------|---------|----------|--------|
-| shipit:integration-checker | sonnet | sonnet | haiku |
+| crew:integration-checker | sonnet | sonnet | haiku |
 
 Store resolved model for use in Task call below.
 
@@ -101,7 +101,7 @@ Phase exports: {from SUMMARYs}
 API routes: {routes created}
 
 Verify cross-phase wiring and E2E user flows.",
-  subagent_type="shipit:integration-checker",
+  subagent_type="crew:integration-checker",
   model="{integration_checker_model}"
 )
 ```

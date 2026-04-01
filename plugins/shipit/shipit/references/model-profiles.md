@@ -13,10 +13,10 @@ Model profiles control which Claude model each SHIPIT agent uses. This allows ba
 | shipit:project-researcher | opus | sonnet | haiku |
 | shipit:research-synthesizer | sonnet | sonnet | haiku |
 | shipit:debugger | opus | sonnet | sonnet |
-| shipit:codebase-mapper | sonnet | haiku | haiku |
+| crew:codebase-mapper | sonnet | haiku | haiku |
 | shipit:verifier | sonnet | sonnet | haiku |
 | shipit:plan-checker | sonnet | sonnet | haiku |
-| shipit:integration-checker | sonnet | sonnet | haiku |
+| crew:integration-checker | sonnet | sonnet | haiku |
 
 ## Profile Philosophy
 
@@ -118,5 +118,5 @@ Executors follow explicit PLAN.md instructions. The plan already contains the re
 **Why Sonnet (not Haiku) for verifiers in balanced?**
 Verification requires goal-backward reasoning - checking if code *delivers* what the phase promised, not just pattern matching. Sonnet handles this well; Haiku may miss subtle gaps.
 
-**Why Haiku for shipit:codebase-mapper?**
+**Why Haiku for crew:codebase-mapper?**
 Read-only exploration and pattern extraction. No reasoning required, just structured output from file contents.
