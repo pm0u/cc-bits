@@ -42,8 +42,7 @@ Exit.
 Call the spek-tools CLI to perform the operation:
 
 ```bash
-# Resolve CLI path
-_TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"
 RESULT=$(node "$_TOOLS" phase add "$DESCRIPTION" 2>&1)
 
 # Check for errors

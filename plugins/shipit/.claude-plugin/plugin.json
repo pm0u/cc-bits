@@ -1,5 +1,5 @@
 {
   "name": "shipit",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "A meta-prompting, context engineering and spec-driven development system for Claude Code"
 }

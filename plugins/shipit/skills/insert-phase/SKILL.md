@@ -56,8 +56,7 @@ fi
 Call the shipit-tools CLI to perform the operation:
 
 ```bash
-# Resolve CLI path
-_TOOLS="$(find ~/.claude/plugins -path '*/shipit/bin/shipit-tools.js' -print -quit 2>/dev/null)"
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js"
 
 RESULT=$(node "$_TOOLS" phase insert "$AFTER_PHASE" "$DESCRIPTION" 2>&1)
 

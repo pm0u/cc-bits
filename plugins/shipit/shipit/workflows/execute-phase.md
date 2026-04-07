@@ -23,8 +23,7 @@ Validate state consistency before proceeding.
 Load all context in one call (v1.15.0 optimization - read files once, not twice):
 
 ```bash
-# Resolve CLI path
-_TOOLS="$(find ~/.claude/plugins -path '*/shipit/bin/shipit-tools.js' -print -quit 2>/dev/null)"
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/shipit-tools.js"
 
 INIT=$(node "$_TOOLS" init execute-phase "${PHASE_ARG}" --include=state,config,roadmap)
 ```

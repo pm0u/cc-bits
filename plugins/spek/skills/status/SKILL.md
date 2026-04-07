@@ -38,8 +38,7 @@ Exit.
 **Collect all status data via CLI:**
 
 ```bash
-# Resolve CLI path
-_TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"
 # Parse state and roadmap via CLI
 STATE=$(node "$_TOOLS" state get 2>&1)
 ROADMAP=$(node "$_TOOLS" roadmap parse 2>&1)

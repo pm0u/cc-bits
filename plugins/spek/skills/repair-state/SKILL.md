@@ -47,8 +47,7 @@ Exit.
 **Run full validation via CLI:**
 
 ```bash
-# Resolve CLI path
-_TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"
 echo "## State Repair Diagnostics"
 echo ""
 echo "Running full validation..."
@@ -138,8 +137,7 @@ Options:
 
 For position drift:
 ```bash
-# Resolve CLI path
-_TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"
 # CLI provides correct values
 node "$_TOOLS" state update plan "$CORRECT_PLAN"
 echo "✓ Fixed: Position updated"
@@ -147,8 +145,7 @@ echo "✓ Fixed: Position updated"
 
 For missing config fields:
 ```bash
-# Resolve CLI path
-_TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"
 # CLI validates and returns full config with defaults
 CONFIG=$(node "$_TOOLS" config validate)
 echo "$CONFIG" | jq -r '.config' > .planning/config.json
@@ -157,8 +154,7 @@ echo "✓ Fixed: Added missing config fields"
 
 For stale timestamp:
 ```bash
-# Resolve CLI path
-_TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"
 TODAY=$(date +%Y-%m-%d)
 node "$_TOOLS" state update status "Repaired on $TODAY"
 echo "✓ Fixed: Updated timestamp"
@@ -169,8 +165,7 @@ echo "✓ Fixed: Updated timestamp"
 **If reconstructing STATE.md from artifacts:**
 
 ```bash
-# Resolve CLI path
-_TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"
 # Parse current project state
 ROADMAP=$(node "$_TOOLS" roadmap parse)
 TOTAL_PHASES=$(echo "$ROADMAP" | jq -r '.totalPhases')
@@ -219,8 +214,7 @@ Resume file: None
 **Re-run validation after repairs:**
 
 ```bash
-# Resolve CLI path
-_TOOLS="$(find ~/.claude/plugins -path '*/spek/bin/spek-tools.js' -print -quit 2>/dev/null)"
+_TOOLS="${CLAUDE_PLUGIN_ROOT}/bin/spek-tools.js"
 FINAL_CHECK=$(node "$_TOOLS" state validate)
 VALID=$(echo "$FINAL_CHECK" | jq -r '.valid')
 
